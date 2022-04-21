@@ -1,9 +1,8 @@
 import hre, {ethers} from 'hardhat';
 import {getArgParser} from '../utils/utils';
 import {BigNumber} from 'ethers';
-import {getMaticRootContracts, ifNotMumbaiThrow} from '../utils/matic';
+import {ifNotMumbaiThrow} from '../utils/matic';
 import {getContractFromDeployment} from '../../utils/companionNetwork';
-import {defaultAbiCoder} from 'ethers/lib/utils';
 
 async function main() {
   ifNotMumbaiThrow();
@@ -20,8 +19,10 @@ async function main() {
   const processArgs = parser.parseArgs();
   const tokenId = BigNumber.from(processArgs.token);
   const wallet = new ethers.Wallet(pk);
-  const {rootChainManager, predicateContract} = await getMaticRootContracts(
-    hre,
+
+  const goerliAvatarTunnel = await getContractFromDeployment(
+    hre.companionNetworks['l1'],
+    'AvatarTunnel',
     wallet
   );
   const goerliAvatar = await getContractFromDeployment(
@@ -33,18 +34,16 @@ async function main() {
   if (processArgs.approve) {
     console.log('Calling approve');
     const approveTx = await goerliAvatar.approve(
-      predicateContract.address,
+      goerliAvatarTunnel.address,
       tokenId
     );
     const approveTxResult = await approveTx.wait();
     console.log('approveTxResult', approveTxResult);
   }
-  console.log('Calling depositFor');
-  const depositData = defaultAbiCoder.encode(['uint256'], [tokenId]);
-  const depositForTx = await rootChainManager.depositFor(
+  console.log('Calling goerliAvatarTunnel.sendAvatarToL2');
+  const depositForTx = await goerliAvatarTunnel.sendAvatarToL2(
     wallet.address,
-    goerliAvatar.address,
-    depositData
+    tokenId
   );
   const depositForResult = await depositForTx.wait();
   console.log('depositForResult', depositForResult);

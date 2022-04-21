@@ -102,5 +102,8 @@
     "landsale:send":"yarn execute mainnet ./setup/landsales/send_assets_to_sales.ts",
     "landsale:withdraw":"yarn execute mainnet ./setup/landsales/withdraw_from_sales.ts",
     "hardhat": "hardhat"
+  },
+  "dependencies": {
+    "@maticnetwork/maticjs": "^3.2.3"
   }
 }
