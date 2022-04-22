@@ -15,6 +15,18 @@ async function delay(ms) {
 use(Web3ClientPlugin);
 setProofApi('https://apis.matic.network/');
 
+function patchProvider(provider) {
+  // old versions of etherjs, specifically the one used by hardhat-deploy don't work !!!
+  // the BaseProvider filters the type field and maticjs library uses it!!!
+  const old = provider.formatter.receipt;
+  provider.formatter.receipt = (value) => {
+    const ret = old.bind(provider.formatter)(value);
+    ret.type = value.type;
+    return ret;
+  };
+  return provider;
+}
+
 async function main() {
   ifNotMumbaiThrow();
 
@@ -22,8 +34,8 @@ async function main() {
   if (!pk) {
     throw new Error('Set the USER_PK');
   }
-  const mumbaiProvider = new ethers.providers.Web3Provider(
-    hre.network.provider
+  const mumbaiProvider = patchProvider(
+    new ethers.providers.Web3Provider(hre.network.provider)
   );
   const mumbaiWallet = new ethers.Wallet(pk, mumbaiProvider);
   const goerliProvider = new ethers.providers.Web3Provider(

@@ -41,12 +41,12 @@ async function main() {
     console.log('approveTxResult', approveTxResult);
   }
   console.log('Calling goerliAvatarTunnel.sendAvatarToL2');
-  const depositForTx = await goerliAvatarTunnel.sendAvatarToL2(
+  const sendAvatarTx = await goerliAvatarTunnel.sendAvatarToL2(
     wallet.address,
     tokenId
   );
-  const depositForResult = await depositForTx.wait();
-  console.log('depositForResult', depositForResult);
+  const sendAvatarToL2 = await sendAvatarTx.wait();
+  console.log('sendAvatarToL2', sendAvatarToL2);
 }
 
 if (require.main === module) {
