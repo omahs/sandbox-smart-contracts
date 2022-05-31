@@ -7,7 +7,7 @@ const func: DeployFunction = async function (hre) {
 
   const {assetAdmin} = await getNamedAccounts();
 
-  const gameToken = await deployments.getOrNull('ChildGameToken');
+  const gameToken = await deployments.getOrNull('Experience');
   if (!gameToken) {
     return;
   }
@@ -30,7 +30,7 @@ const func: DeployFunction = async function (hre) {
 };
 export default func;
 func.runAtTheEnd = true;
-func.tags = ['ChildGameToken', 'ChildGameToken_setup'];
-func.dependencies = ['Asset', 'ChildGameToken_deploy'];
+func.tags = ['Experience', 'Experience_setup'];
+func.dependencies = ['Asset', 'Experience_deploy'];
 // TODO: Setup deploy-polygon folder and network.
 func.skip = skipUnlessTest; // TODO enable

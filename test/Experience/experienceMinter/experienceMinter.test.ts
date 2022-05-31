@@ -15,7 +15,10 @@ import {
 import {Address} from 'hardhat-deploy/types';
 import {supplyAssets} from '../assets';
 import {toUtf8Bytes} from 'ethers/lib/utils';
-import {gameMintingFee, gameUpdateFee} from '../../../data/gameMinterFees';
+import {
+  experienceMintingFee,
+  experienceUpdateFee,
+} from '../../../data/experienceMinterFees';
 import {sendMetaTx} from '../../sendMetaTx';
 
 const rng = new Prando('GameMinter');
@@ -170,10 +173,10 @@ describe('GameMinter', function () {
       );
 
       expect(balancesAfter[0]).to.be.equal(
-        balancesBefore[0].sub(gameMintingFee)
+        balancesBefore[0].sub(experienceMintingFee)
       );
       expect(balancesAfter[1]).to.be.equal(
-        balancesBefore[1].add(gameMintingFee)
+        balancesBefore[1].add(experienceMintingFee)
       );
     });
 
@@ -242,10 +245,10 @@ describe('GameMinter', function () {
       );
 
       expect(balancesAfter[0]).to.be.equal(
-        balancesBefore[0].sub(gameUpdateFee)
+        balancesBefore[0].sub(experienceUpdateFee)
       );
       expect(balancesAfter[1]).to.be.equal(
-        balancesBefore[1].add(gameUpdateFee)
+        balancesBefore[1].add(experienceUpdateFee)
       );
     });
 
@@ -279,10 +282,10 @@ describe('GameMinter', function () {
       );
 
       expect(balancesAfter[0]).to.be.equal(
-        balancesBefore[0].sub(gameUpdateFee)
+        balancesBefore[0].sub(experienceUpdateFee)
       );
       expect(balancesAfter[1]).to.be.equal(
-        balancesBefore[1].add(gameUpdateFee)
+        balancesBefore[1].add(experienceUpdateFee)
       );
       expect(gameAssetsAfter[0]).to.be.equal(gameAssetsBefore[0].add(11));
     });
@@ -318,10 +321,10 @@ describe('GameMinter', function () {
       );
 
       expect(balancesAfter[0]).to.be.equal(
-        balancesBefore[0].sub(gameUpdateFee)
+        balancesBefore[0].sub(experienceUpdateFee)
       );
       expect(balancesAfter[1]).to.be.equal(
-        balancesBefore[1].add(gameUpdateFee)
+        balancesBefore[1].add(experienceUpdateFee)
       );
       expect(gameAssetsAfter[0]).to.be.equal(gameAssetsBefore[0].sub(3));
     });
@@ -349,10 +352,10 @@ describe('GameMinter', function () {
       );
 
       expect(balancesAfter[0]).to.be.equal(
-        balancesBefore[0].sub(gameUpdateFee)
+        balancesBefore[0].sub(experienceUpdateFee)
       );
       expect(balancesAfter[1]).to.be.equal(
-        balancesBefore[1].add(gameUpdateFee)
+        balancesBefore[1].add(experienceUpdateFee)
       );
     });
 
@@ -419,10 +422,10 @@ describe('GameMinter', function () {
       );
 
       expect(balancesAfter[0]).to.be.equal(
-        balancesBefore[0].sub(gameUpdateFee)
+        balancesBefore[0].sub(experienceUpdateFee)
       );
       expect(balancesAfter[1]).to.be.equal(
-        balancesBefore[1].add(gameUpdateFee)
+        balancesBefore[1].add(experienceUpdateFee)
       );
     });
     it('allows GAME editor to set GAME URI', async function () {
@@ -454,10 +457,10 @@ describe('GameMinter', function () {
 
       expect(eventURI).to.be.equal(await getURI('Updating URI Again ...'));
       expect(balancesAfter[0]).to.be.equal(
-        balancesBefore[0].sub(gameUpdateFee)
+        balancesBefore[0].sub(experienceUpdateFee)
       );
       expect(balancesAfter[1]).to.be.equal(
-        balancesBefore[1].add(gameUpdateFee)
+        balancesBefore[1].add(experienceUpdateFee)
       );
     });
   });
@@ -549,10 +552,10 @@ describe('GameMinter', function () {
       const gamesAfter = await gameTokenContract.balanceOf(users[1].address);
 
       expect(balancesAfter[0]).to.be.equal(
-        balancesBefore[0].sub(gameMintingFee)
+        balancesBefore[0].sub(experienceMintingFee)
       );
       expect(balancesAfter[1]).to.be.equal(
-        balancesBefore[1].add(gameMintingFee)
+        balancesBefore[1].add(experienceMintingFee)
       );
       expect(gamesAfter).to.be.equal(gamesBefore.add(1));
     });
@@ -598,10 +601,10 @@ describe('GameMinter', function () {
       );
 
       expect(balancesAfter[0]).to.be.equal(
-        balancesBefore[0].sub(gameUpdateFee)
+        balancesBefore[0].sub(experienceUpdateFee)
       );
       expect(balancesAfter[1]).to.be.equal(
-        balancesBefore[1].add(gameUpdateFee)
+        balancesBefore[1].add(experienceUpdateFee)
       );
 
       expect(event.args[0]).to.be.equal(gameId2.sub(1));
@@ -653,10 +656,10 @@ describe('GameMinter', function () {
       );
 
       expect(balancesAfter[0]).to.be.equal(
-        balancesBefore[0].sub(gameUpdateFee)
+        balancesBefore[0].sub(experienceUpdateFee)
       );
       expect(balancesAfter[1]).to.be.equal(
-        balancesBefore[1].add(gameUpdateFee)
+        balancesBefore[1].add(experienceUpdateFee)
       );
       expect(event.args[0]).to.be.equal(gameId2.sub(1));
       expect(event.args[1]).to.be.equal(gameId2);
@@ -711,10 +714,10 @@ describe('GameMinter', function () {
         await getURI('Sandbox MetaTx change URI')
       );
       expect(balancesAfter[0]).to.be.equal(
-        balancesBefore[0].sub(gameUpdateFee)
+        balancesBefore[0].sub(experienceUpdateFee)
       );
       expect(balancesAfter[1]).to.be.equal(
-        balancesBefore[1].add(gameUpdateFee)
+        balancesBefore[1].add(experienceUpdateFee)
       );
     });
 

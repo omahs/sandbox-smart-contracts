@@ -3,6 +3,6 @@
 /* solhint-disable no-empty-blocks */
 
 pragma solidity 0.8.2;
-import "./GameBaseToken.sol";
+import "./BaseExperience.sol";
 
-contract GameV1 is GameBaseToken {}
+contract ExperienceV1 is BaseExperience {}

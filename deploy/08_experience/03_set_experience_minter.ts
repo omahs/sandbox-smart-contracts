@@ -7,14 +7,14 @@ const func: DeployFunction = async function (hre) {
 
   const {gameTokenAdmin} = await getNamedAccounts();
 
-  const gameMinter = await deployments.get('GameMinter');
+  const gameMinter = await deployments.get('ExperienceMinter');
 
-  const currentMinter = await read('ChildGameToken', 'getMinter');
+  const currentMinter = await read('Experience', 'getMinter');
   const isMinter = currentMinter == gameMinter.address;
 
   if (!isMinter) {
     await execute(
-      'ChildGameToken',
+      'Experience',
       {from: gameTokenAdmin, log: true},
       'changeMinter',
       gameMinter.address
@@ -23,7 +23,7 @@ const func: DeployFunction = async function (hre) {
 };
 export default func;
 func.runAtTheEnd = true;
-func.tags = ['ChildGameToken', 'ChildGameToken_setup'];
-func.dependencies = ['ChildGameToken_deploy', 'GameMinter_deploy'];
+func.tags = ['Experience', 'Experience_setup'];
+func.dependencies = ['Experience_deploy', 'ExperienceMinter_deploy'];
 // TODO: Setup deploy-polygon folder and network.
 func.skip = skipUnlessTest; // TODO enable
