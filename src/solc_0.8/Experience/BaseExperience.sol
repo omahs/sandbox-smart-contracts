@@ -4,10 +4,10 @@ pragma solidity 0.8.2;
 import "../common/BaseWithStorage/ImmutableERC721.sol";
 import "../common/BaseWithStorage/WithMinter.sol";
 import "../common/interfaces/IAssetToken.sol";
-import "../common/interfaces/IGameToken.sol";
+import "../common/interfaces/IExperienceToken.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-contract BaseExperience is ImmutableERC721, WithMinter, Initializable, IGameToken {
+contract BaseExperience is ImmutableERC721, WithMinter, Initializable, IExperienceToken {
     ///////////////////////////////  Data //////////////////////////////
 
     IAssetToken internal _asset;
@@ -27,7 +27,7 @@ contract BaseExperience is ImmutableERC721, WithMinter, Initializable, IGameToke
     /// @param newId The id of the newly minted token.
     /// @param update The changes made to the Game: new assets, removed assets, uri
 
-    event GameTokenUpdated(uint256 indexed oldId, uint256 indexed newId, IGameToken.GameData update);
+    event GameTokenUpdated(uint256 indexed oldId, uint256 indexed newId, IExperienceToken.GameData update);
 
     /// @dev Emits when creatorship of a GAME token is transferred.
     /// @param original The original creator of the GAME token.
@@ -105,7 +105,7 @@ contract BaseExperience is ImmutableERC721, WithMinter, Initializable, IGameToke
     function updateGame(
         address from,
         uint256 gameId,
-        IGameToken.GameData memory update
+        IExperienceToken.GameData memory update
     ) external override onlyMinter returns (uint256) {
         uint256 id = _storageId(gameId);
         _addAssets(from, id, update.assetIdsToAdd, update.assetAmountsToAdd);
@@ -168,14 +168,14 @@ contract BaseExperience is ImmutableERC721, WithMinter, Initializable, IGameToke
 
     /// @notice Burn a GAME token.
     /// @param gameId The id of the GAME to destroy.
-    function burn(uint256 gameId) external override(ERC721BaseToken, IGameToken) {
+    function burn(uint256 gameId) external override(ERC721BaseToken, IExperienceToken) {
         _burnGame(_msgSender(), gameId);
     }
 
     /// @notice Burn a GAME token on behalf of owner.
     /// @param from The address whose GAME is being burnt.
     /// @param gameId The id of the GAME to burn.
-    function burnFrom(address from, uint256 gameId) external override(ERC721BaseToken, IGameToken) {
+    function burnFrom(address from, uint256 gameId) external override(ERC721BaseToken, IExperienceToken) {
         require(from != address(0), "NOT_FROM_ZEROADDRESS");
         _burnGame(from, gameId);
     }

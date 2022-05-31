@@ -1,9 +1,9 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.2;
 
-import "../../Game/GameBaseToken.sol";
+import "../../Experience/BaseExperience.sol";
 
 // solhint-disable-next-line no-empty-blocks
-contract Experience is GameBaseToken {
+contract Experience is BaseExperience {
 
 }

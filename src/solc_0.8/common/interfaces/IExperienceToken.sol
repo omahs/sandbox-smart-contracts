@@ -4,7 +4,7 @@ pragma solidity 0.8.2;
 
 /// @title Interface for the Game token
 
-interface IGameToken {
+interface IExperienceToken {
     struct GameData {
         uint256[] assetIdsToRemove;
         uint256[] assetAmountsToRemove;
