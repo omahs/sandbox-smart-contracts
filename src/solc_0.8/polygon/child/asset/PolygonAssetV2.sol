@@ -5,9 +5,10 @@ pragma solidity 0.8.2;
 import "@openzeppelin/contracts-0.8/utils/Address.sol";
 import "../../../asset/ERC1155ERC721.sol";
 import "../../../common/interfaces/IAssetAttributesRegistry.sol";
+import "../../../common/BaseWithStorage/WithRoyalties.sol";
 import "../../../asset/libraries/AssetHelper.sol";
 
-contract PolygonAssetV2 is ERC1155ERC721 {
+contract PolygonAssetV2 is ERC1155ERC721, WithRoyalties {
     address private _childChainManager;
     AssetHelper.AssetRegistryData private assetRegistryData;
 
@@ -70,5 +71,18 @@ contract PolygonAssetV2 is ERC1155ERC721 {
             _burnBatch(_msgSender(), ids, amounts);
         }
         emit ChainExit(_msgSender(), ids, amounts, abi.encode(hashes, gemsCatalystDatas));
+    }
+
+    /// @notice Query if a contract implements interface `id`.
+    /// @param id the interface identifier, as specified in ERC-165.
+    /// @return `true` if the contract implements `id`.
+    function supportsInterface(bytes4 id) external pure override returns (bool) {
+        return
+            id == 0x01ffc9a7 || //ERC165
+            id == 0xd9b67a26 || // ERC1155
+            id == 0x80ac58cd || // ERC721
+            id == 0x5b5e139f || // ERC721 metadata
+            id == 0x0e89341c || // ERC1155 metadata
+            id == 0x2a55205a; // ERC2981
     }
 }
