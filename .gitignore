@@ -22,6 +22,7 @@ contractsInfo.json
 deployments/hardhat
 deployments/localhost
 deployments/rinkeby_test
+fork_deployments/
 
 .google_credentials.json
 token.json
