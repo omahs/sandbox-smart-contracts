@@ -44,7 +44,9 @@ async function main() {
     estateId.toString(),
     estateId.toHexString(),
     'user',
-    events[0].args['user']
+    events[0].args['user'],
+    'gas used',
+    BigNumber.from(receipt.gasUsed).toString()
   );
   const lands = events[0].args['lands'];
   for (const l of lands) {
