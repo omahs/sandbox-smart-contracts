@@ -8,7 +8,94 @@ import 'hardhat-gas-reporter';
 import {HardhatUserConfig} from 'hardhat/types';
 import 'solidity-coverage';
 import {accounts, node_url} from './utils/network';
+import {MochaOptions} from 'mocha';
 
+const networks = {
+  /**
+   * TAGS:
+   *  - mainnet -> production networks
+   *  - testnet -> non production networks
+   *  - L1      -> Layer 1 networks
+   *  - L2      -> Layer 2 networks
+   */
+  hardhat: {
+    accounts: accounts(process.env.HARDHAT_FORK),
+    tags: ['testnet', 'L1', 'L2'],
+    forking: process.env.HARDHAT_FORK
+      ? {
+          url: node_url(process.env.HARDHAT_FORK),
+          blockNumber: process.env.HARDHAT_FORK_NUMBER
+            ? parseInt(process.env.HARDHAT_FORK_NUMBER)
+            : undefined,
+        }
+      : undefined,
+    deploy: ['deploy_polygon', 'deploy'],
+    // deploy: ['deploy-for-test', 'deploy'],
+    companionNetworks: {
+      l1: 'hardhat',
+      l2: 'hardhat',
+    },
+    blockGasLimit:
+      parseInt(process.env.HARDHAT_BLOCK_GAS_LIMIT || '0') || 30000000,
+  },
+  localhost: {
+    url: 'http://localhost:8545',
+    accounts: accounts(),
+    tags: ['testnet', 'L1', 'L2'],
+  },
+  rinkeby_test: {
+    url: node_url('rinkeby'),
+    accounts: accounts('rinkeby_test'),
+    tags: ['testnet'],
+  },
+  rinkeby: {
+    url: node_url('rinkeby'),
+    accounts: accounts('rinkeby'),
+    tags: ['testnet', 'L1'],
+  },
+  goerli: {
+    url: node_url('goerli'),
+    accounts: accounts('goerli'),
+    tags: ['testnet', 'L1'],
+    // gasPrice: 600000000000, // Uncomment in case of pending txs, and adjust gas
+    companionNetworks: {
+      l2: 'mumbai',
+    },
+  },
+  mainnet: {
+    url: node_url('mainnet'),
+    accounts: accounts('mainnet'),
+    tags: ['mainnet', 'L1'],
+    companionNetworks: {
+      l2: 'polygon',
+    },
+  },
+  mumbai: {
+    url: node_url('mumbai'),
+    accounts: accounts('mumbai'),
+    tags: ['testnet', 'L2'],
+    deploy: ['deploy_polygon'],
+    //gasPrice: 600000000000, // TODO: this fixes invalid sender issue
+    companionNetworks: {
+      l1: 'goerli',
+    },
+  },
+  polygon: {
+    url: node_url('polygon'),
+    accounts: accounts('polygon'),
+    tags: ['mainnet', 'L2'],
+    deploy: ['deploy_polygon'],
+    companionNetworks: {
+      l1: 'mainnet',
+    },
+  },
+  polygon_ganache: {
+    url: node_url('polygon'),
+    accounts: accounts('polygon'),
+    tags: ['mainnet', 'L2'],
+    deploy: ['deploy_polygon'],
+  },
+};
 const config: HardhatUserConfig = {
   gasReporter: {
     currency: 'USD',
@@ -19,7 +106,9 @@ const config: HardhatUserConfig = {
   },
   mocha: {
     timeout: 0,
-  },
+    grep: process.env.TEST_GREP ? process.env.TEST_GREP : '@e2e',
+    invert: !process.env.TEST_GREP, // exclude @e2e if nothing is selected
+  } as MochaOptions,
   solidity: {
     compilers: [
       {
@@ -97,6 +186,7 @@ const config: HardhatUserConfig = {
       rinkeby: '0xa4519D601F43D0b8f167842a367465681F652252',
       goerli: '0x39D01ecc951C2c1f20ba0549e62212659c4d1e06',
       mumbai: '0x49c4D4C94829B9c44052C5f5Cb164Fc612181165',
+      polygon_ganache: '0x7A9fe22691c811ea339D9B73150e6911a5343DcA',
     }, // can add super operators and change admin
 
     upgradeAdmin: 'sandAdmin',
@@ -264,88 +354,10 @@ const config: HardhatUserConfig = {
       goerli: '0x4751d4dc3d8cff421598592b51bb1d9a0fb116e9',
     },
   },
-  networks: {
-    /**
-     * TAGS:
-     *  - mainnet -> production networks
-     *  - testnet -> non production networks
-     *  - L1      -> Layer 1 networks
-     *  - L2      -> Layer 2 networks
-     */
-    hardhat: {
-      accounts: accounts(process.env.HARDHAT_FORK),
-      tags: ['testnet', 'L1', 'L2'],
-      forking: process.env.HARDHAT_FORK
-        ? {
-            url: node_url(process.env.HARDHAT_FORK),
-            blockNumber: process.env.HARDHAT_FORK_NUMBER
-              ? parseInt(process.env.HARDHAT_FORK_NUMBER)
-              : undefined,
-          }
-        : undefined,
-      deploy: ['deploy_polygon', 'deploy'],
-      // deploy: ['deploy-for-test', 'deploy'],
-      companionNetworks: {
-        l1: 'hardhat',
-        l2: 'hardhat',
-      },
-      blockGasLimit:
-        parseInt(process.env.HARDHAT_BLOCK_GAS_LIMIT || '0') || 30000000,
-    },
-    localhost: {
-      url: 'http://localhost:8545',
-      accounts: accounts(),
-      tags: ['testnet', 'L1', 'L2'],
-    },
-    rinkeby_test: {
-      url: node_url('rinkeby'),
-      accounts: accounts('rinkeby_test'),
-      tags: ['testnet'],
-    },
-    rinkeby: {
-      url: node_url('rinkeby'),
-      accounts: accounts('rinkeby'),
-      tags: ['testnet', 'L1'],
-    },
-    goerli: {
-      url: node_url('goerli'),
-      accounts: accounts('goerli'),
-      tags: ['testnet', 'L1'],
-      // gasPrice: 600000000000, // Uncomment in case of pending txs, and adjust gas
-      companionNetworks: {
-        l2: 'mumbai',
-      },
-    },
-    mainnet: {
-      url: node_url('mainnet'),
-      accounts: accounts('mainnet'),
-      tags: ['mainnet', 'L1'],
-      companionNetworks: {
-        l2: 'polygon',
-      },
-    },
-    mumbai: {
-      url: node_url('mumbai'),
-      accounts: accounts('mumbai'),
-      tags: ['testnet', 'L2'],
-      deploy: ['deploy_polygon'],
-      //gasPrice: 600000000000, // TODO: this fixes invalid sender issue
-      companionNetworks: {
-        l1: 'goerli',
-      },
-    },
-    polygon: {
-      url: node_url('polygon'),
-      accounts: accounts('polygon'),
-      tags: ['mainnet', 'L2'],
-      deploy: ['deploy_polygon'],
-      companionNetworks: {
-        l1: 'mainnet',
-      },
-    },
-  },
+  networks,
   paths: {
     sources: 'src',
+    deployments: process.env.HARDHAT_FORK ? 'fork_deployments' : 'deployments',
   },
   contractSizer: {
     alphaSort: false,
@@ -353,13 +365,21 @@ const config: HardhatUserConfig = {
     disambiguatePaths: false,
   },
 
-  external: process.env.HARDHAT_FORK
-    ? {
-        deployments: {
-          hardhat: ['deployments/' + process.env.HARDHAT_FORK],
-        },
-      }
-    : undefined,
+  external: {
+    deployments: {
+      hardhat: ['deployments/' + process.env.HARDHAT_FORK],
+      ...Object.keys(networks).reduce(
+        (acc, val: string) => ({
+          ...acc,
+          [val]: [
+            'deployments/' + val.replace('_ganache', ''),
+            'fork_deployments/' + val,
+          ],
+        }),
+        {}
+      ),
+    },
+  },
   etherscan: {
     apiKey: {
       mainnet: process.env.ETHERSCAN_API_KEY_MAINNET || '',
