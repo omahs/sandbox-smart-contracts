@@ -357,7 +357,6 @@ const config: HardhatUserConfig = {
   networks,
   paths: {
     sources: 'src',
-    deployments: process.env.HARDHAT_FORK ? 'fork_deployments' : 'deployments',
   },
   contractSizer: {
     alphaSort: false,
@@ -373,7 +372,7 @@ const config: HardhatUserConfig = {
           ...acc,
           [val]: [
             'deployments/' + val.replace('_ganache', ''),
-            'fork_deployments/' + val,
+            'deployments/' + val,
           ],
         }),
         {}
