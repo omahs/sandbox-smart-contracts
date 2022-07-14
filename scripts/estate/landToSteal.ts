@@ -4,6 +4,7 @@ import {
   TileWithCoord,
 } from '../../test/map/fixtures';
 import {BigNumber} from 'ethers';
+import {Box, Point, QuadTreeWithCounter} from './quadTree';
 
 export const ownerToSteal = '0x7a9fe22691c811ea339d9b73150e6911a5343dca';
 export const landToSteal = [
@@ -1973,38 +1974,15 @@ export const landToSteal = [
 ];
 
 if (require.main === module) {
-  const args = process.argv.slice(process.argv.indexOf(__filename) + 1);
-  if (args.length == 3) {
-    const size = parseInt(args[0]);
-    const x = parseInt(args[1]);
-    const y = parseInt(args[2]);
-    console.log('size', size, 'x', x, 'y', y);
-    console.log(
-      'need tokenId',
-      x + y * 408,
-      '-',
-      x + size - 1 + (y + size - 1) * 408
-    );
-    const ids: {[k: string]: boolean} = {};
-    for (const land of landToSteal) {
-      ids[land] = true;
-    }
-    for (let i = 0; i < size; i++) {
-      for (let j = 0; j < size; j++) {
-        const id = (x + i + (y + j) * 408).toString();
-        if (!ids[id]) {
-          console.log('missing', id, 'x', x + i, 'y', y + j);
-        }
-      }
-    }
-    process.exit();
-  }
-
+  console.log(landToSteal);
   const tiles: {[k: string]: TileWithCoord} = {};
+  const quadMultiple = 24 * 2 * 2 * 2 * 2 * 2;
+  const q = new QuadTreeWithCounter(new Box(0, 0, quadMultiple, quadMultiple));
   for (const land of landToSteal) {
     const l = parseInt(land);
     const x = l % 408;
     const y = Math.floor(l / 408);
+    q.insert(new Point(x, y));
     const tx = Math.floor(x / 24);
     const ty = Math.floor(y / 24);
     const tileId = tx + ty * 17;
@@ -2024,4 +2002,10 @@ if (require.main === module) {
       : BigNumber.from(a.y).sub(b.y).toNumber()
   );
   tileList.forEach(printTileWithCoord);
+
+  const quads = q
+    .findFullQuads()
+    .map((q) => ({x: q.x, y: q.y, size: Math.sqrt(q.h * q.w)}));
+  quads.sort((a, b) => a.size - b.size);
+  console.log('QUADS', quads);
 }
