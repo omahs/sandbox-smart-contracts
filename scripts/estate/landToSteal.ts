@@ -3,6 +3,7 @@ import {
   printTileWithCoord,
   TileWithCoord,
 } from '../../test/map/fixtures';
+import {BigNumber} from 'ethers';
 
 export const ownerToSteal = '0x7a9fe22691c811ea339d9b73150e6911a5343dca';
 export const landToSteal = [
@@ -1999,7 +2000,7 @@ if (require.main === module) {
     process.exit();
   }
 
-  const tiles: {[k: number]: TileWithCoord} = {};
+  const tiles: {[k: string]: TileWithCoord} = {};
   for (const land of landToSteal) {
     const l = parseInt(land);
     const x = l % 408;
@@ -2008,11 +2009,19 @@ if (require.main === module) {
     const ty = Math.floor(y / 24);
     const tileId = tx + ty * 17;
     if (!tiles[tileId]) {
-      tiles[tileId] = {x: tx, y: ty, tile: getEmptyTile()};
+      tiles[tileId] = {
+        x: tx,
+        y: ty,
+        tile: getEmptyTile(),
+      };
     }
     tiles[tileId].tile[y % 24][x % 24] = true;
   }
-  for (const t of Object.keys(tiles)) {
-    printTileWithCoord(tiles[parseInt(t)]);
-  }
+  const tileList = Object.values(tiles);
+  tileList.sort((a, b) =>
+    BigNumber.from(a.y).eq(b.y)
+      ? BigNumber.from(a.x).sub(b.x).toNumber()
+      : BigNumber.from(a.y).sub(b.y).toNumber()
+  );
+  tileList.forEach(printTileWithCoord);
 }

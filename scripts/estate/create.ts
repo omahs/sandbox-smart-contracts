@@ -1,7 +1,40 @@
 import {ethers} from 'hardhat';
-import {BigNumber, BigNumberish} from 'ethers';
+import {BigNumber} from 'ethers';
 import {Event} from '@ethersproject/contracts';
 import {printTileWithCoord, tileWithCoordToJS} from '../../test/map/fixtures';
+import {getArgParser} from '../utils/utils';
+
+function parseArgs() {
+  const parser = getArgParser({
+    description: `RUN WITH: yarn execute mumbai ${process.argv[0]}`,
+  });
+
+  function quad(x: string) {
+    const arr = x.split(',');
+    if (arr.length != 3)
+      throw TypeError('quad must have 3 components separated by comma');
+    return {
+      size: BigNumber.from(arr[0]),
+      x: BigNumber.from(arr[1]),
+      y: BigNumber.from(arr[2]),
+    };
+  }
+
+  parser.addArgument(['-a', '--add'], {
+    action: 'append',
+    help: 'add quad',
+    type: quad,
+  });
+
+  const args = parser.parseArgs();
+  const ifNullEmpty = (x: unknown[]) => (x === null ? [] : x);
+  args.add = ifNullEmpty(args.add);
+  return [
+    args.add.map((x: {size: BigNumber}) => x.size),
+    args.add.map((x: {x: BigNumber}) => x.x),
+    args.add.map((x: {y: BigNumber}) => x.y),
+  ];
+}
 
 async function main() {
   const nodeUrl = process.env.ETH_NODE_URI_POLYGON;
@@ -16,24 +49,16 @@ async function main() {
     process.env.ETH_NODE_URI_POLYGON
   );
   const wallet = new ethers.Wallet(pk, provider);
+  console.log('Wallet address', wallet.address);
 
-  const args = process.argv.slice(process.argv.indexOf(__filename) + 1);
-  const sizes: BigNumberish[] = [];
-  const xs: BigNumberish[] = [];
-  const ys: BigNumberish[] = [];
-  if (args.length % 3 != 0) {
-    console.log('Usage: cmd size x y ... size x y');
-    process.exit();
-  }
-  for (let i = 0; i < args.length; i++) {
-    sizes.push(args[i++]);
-    xs.push(args[i++]);
-    ys.push(args[i++]);
-  }
+  const landToAdd = parseArgs();
 
-  console.log('Calling create', sizes, xs, ys);
+  console.log(
+    'Calling create',
+    landToAdd.map((x) => x.toString())
+  );
   const estateContact = await ethers.getContract('PolygonEstate', wallet);
-  const tx = await estateContact.create([sizes, xs, ys]);
+  const tx = await estateContact.create(landToAdd);
   const receipt = await tx.wait();
   const events = receipt.events.filter(
     (v: Event) => v.event === 'EstateTokenCreated'
@@ -52,6 +77,7 @@ async function main() {
   for (const l of lands) {
     printTileWithCoord(tileWithCoordToJS(l));
   }
+  console.log('gas used', BigNumber.from(receipt.gasUsed).toString());
 }
 
 if (require.main === module) {

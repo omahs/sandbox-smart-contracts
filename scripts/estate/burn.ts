@@ -1,7 +1,6 @@
 import {ethers} from 'hardhat';
 import {BigNumber} from 'ethers';
 import {Event} from '@ethersproject/contracts';
-import {printTileWithCoord, tileWithCoordToJS} from '../../test/map/fixtures';
 import {getArgParser} from '../utils/utils';
 
 function parseArgs() {
@@ -22,11 +21,6 @@ function parseArgs() {
 
   parser.addArgument(['token'], {help: 'token id'});
 
-  parser.addArgument(['-a', '--add'], {
-    action: 'append',
-    help: 'add quad',
-    type: quad,
-  });
   parser.addArgument(['-r', '--remove'], {
     action: 'append',
     help: 'remove quad',
@@ -39,15 +33,9 @@ function parseArgs() {
   });
   const args = parser.parseArgs();
   const ifNullEmpty = (x: unknown[]) => (x === null ? [] : x);
-  args.add = ifNullEmpty(args.add);
   args.remove = ifNullEmpty(args.remove);
   return {
     estateId: BigNumber.from(args.token),
-    landToAdd: [
-      args.add.map((x: {size: BigNumber}) => x.size),
-      args.add.map((x: {x: BigNumber}) => x.x),
-      args.add.map((x: {y: BigNumber}) => x.y),
-    ],
     expToUnlink: ifNullEmpty(args.unlink) as BigNumber[],
     landToRemove: [
       args.remove.map((x: {size: BigNumber}) => x.size),
@@ -70,16 +58,12 @@ async function main() {
     process.env.ETH_NODE_URI_POLYGON
   );
   const wallet = new ethers.Wallet(pk, provider);
-  const {estateId, landToAdd, expToUnlink, landToRemove} = parseArgs();
+  const {estateId, expToUnlink, landToRemove} = parseArgs();
 
   console.log(
     'Calling update for token',
     estateId.toString(),
     estateId.toHexString()
-  );
-  console.log(
-    'Adding',
-    landToAdd.map((x) => x.toString())
   );
   console.log(
     'Unlinking',
@@ -91,35 +75,21 @@ async function main() {
   );
 
   const estateContact = await ethers.getContract('PolygonEstate', wallet);
-  const tx = await estateContact.update(
-    estateId,
-    landToAdd,
-    expToUnlink,
-    landToRemove
-  );
+  const tx = await estateContact.burn(estateId, expToUnlink, landToRemove);
   const receipt = await tx.wait();
   const events = receipt.events.filter(
-    (v: Event) => v.event === 'EstateTokenUpdated'
+    (v: Event) => v.event === 'EstateTokenBurned'
   );
-  const oldId = BigNumber.from(events[0].args['oldId']);
-  const newId = BigNumber.from(events[0].args['newId']);
+  const ret = BigNumber.from(events[0].args['estateId']);
   console.log(
-    'Estate updated, oldId',
-    oldId.toString(),
-    oldId.toHexString(),
-    'newId',
-    newId.toString(),
-    newId.toHexString(),
+    'Estate burned, estateId',
+    ret.toString(),
+    ret.toHexString(),
     'user',
-    events[0].args['user'],
+    events[0].args['from'],
     'gas used',
     BigNumber.from(receipt.gasUsed).toString()
   );
-  const lands = events[0].args['lands'];
-  for (const l of lands) {
-    printTileWithCoord(tileWithCoordToJS(l));
-  }
-  console.log('gas used', BigNumber.from(receipt.gasUsed).toString());
 }
 
 if (require.main === module) {
