@@ -1,5 +1,6 @@
 import {ethers} from 'hardhat';
 import {AddressZero} from '@ethersproject/constants';
+import {landToSteal} from './landToSteal';
 
 async function main() {
   const nodeUrl = process.env.ETH_NODE_URI_POLYGON;
@@ -15,29 +16,18 @@ async function main() {
   );
   const wallet = new ethers.Wallet(pk, provider);
 
-  const args = process.argv.slice(process.argv.indexOf(__filename) + 1);
-  if (args.length == 0 || args.length % 3 != 0) {
-    console.log('Usage: cmd size x y ... size x y');
-    process.exit();
-  }
   const landContract = await ethers.getContract('PolygonLand', wallet);
-  for (let i = 0; i < args.length; ) {
-    const size = parseInt(args[i++]);
-    const x0 = parseInt(args[i++]);
-    const y0 = parseInt(args[i++]);
-    for (let j = 0; j < size; j++) {
-      for (let k = 0; k < size; k++) {
-        const x = x0 + k;
-        const y = y0 + j;
-        const landId = x + y * 408;
-        let owner = AddressZero;
-        try {
-          owner = await landContract.ownerOf(landId);
-          // eslint-disable-next-line no-empty
-        } catch {}
-        console.log('x', x, 'y', y, 'landId', landId, 'owner', owner);
-      }
-    }
+  for (const land of landToSteal) {
+    const l = parseInt(land);
+    const x = l % 408;
+    const y = Math.floor(l / 408);
+    const landId = x + y * 408;
+    let owner = AddressZero;
+    try {
+      owner = await landContract.ownerOf(landId);
+      // eslint-disable-next-line no-empty
+    } catch {}
+    console.log('x', x, 'y', y, 'landId', landId, 'owner', owner);
   }
 }
 

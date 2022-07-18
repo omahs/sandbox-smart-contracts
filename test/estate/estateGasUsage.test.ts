@@ -365,4 +365,75 @@ describe('@skip-on-coverage gas consumption of', function () {
       });
     });
   });
+  it(`one land to estate`, async function () {
+    const {
+      landContractAsOther,
+      estateContractAsOther,
+      mintQuad,
+      other,
+      createEstateAsOther,
+    } = await setupL1EstateAndLand();
+    await landContractAsOther.setApprovalForAll(
+      estateContractAsOther.address,
+      true
+    );
+    await mintQuad(other, 24, 240, 240);
+    const xs = [240];
+    const ys = [240];
+    const sizes = [1];
+    const {gasUsed} = await createEstateAsOther({xs, ys, sizes});
+    expect(BigNumber.from(gasUsed)).to.be.lte(342568);
+  });
+  it(`add one land`, async function () {
+    const {
+      landContractAsOther,
+      estateContractAsOther,
+      mintQuad,
+      other,
+      createEstateAsOther,
+      updateEstateAsOther,
+    } = await setupL1EstateAndLand();
+    await landContractAsOther.setApprovalForAll(
+      estateContractAsOther.address,
+      true
+    );
+    await mintQuad(other, 24, 240, 240);
+    const {estateId} = await createEstateAsOther({
+      sizes: [1],
+      xs: [240],
+      ys: [240],
+    });
+    const {updateGasUsed} = await updateEstateAsOther(estateId, {
+      sizes: [1],
+      xs: [241],
+      ys: [240],
+    });
+    expect(BigNumber.from(updateGasUsed)).to.be.lte(210237);
+  });
+  it(`remove one land from estate`, async function () {
+    const {
+      landContractAsOther,
+      estateContractAsOther,
+      mintQuad,
+      other,
+      createEstateAsOther,
+      updateEstateAsOther,
+    } = await setupL1EstateAndLand();
+    await landContractAsOther.setApprovalForAll(
+      estateContractAsOther.address,
+      true
+    );
+    await mintQuad(other, 24, 240, 240);
+    const {estateId} = await createEstateAsOther({
+      sizes: [24],
+      xs: [240],
+      ys: [240],
+    });
+    const {updateGasUsed} = await updateEstateAsOther(estateId, undefined, {
+      sizes: [1],
+      xs: [240],
+      ys: [240],
+    });
+    expect(BigNumber.from(updateGasUsed)).to.be.lte(559344);
+  });
 });
