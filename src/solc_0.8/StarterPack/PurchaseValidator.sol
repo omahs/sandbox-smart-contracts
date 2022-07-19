@@ -1,15 +1,15 @@
 pragma solidity 0.8.2;
 
+import "@openzeppelin/contracts-0.8/access/AccessControl.sol";
 import "../common/Libraries/SigUtil.sol";
-import "../common/BaseWithStorage/Admin.sol";
 
-contract PurchaseValidator is Admin {
+contract PurchaseValidator is AccessControl {
     address private _signingWallet;
 
     // A parallel-queue mapping to nonces.
     mapping(address => mapping(uint128 => uint128)) public queuedNonces;
 
-    constructor(address initialSigningWallet) public {
+    constructor(address initialSigningWallet) {
         _signingWallet = initialSigningWallet;
     }
 
@@ -31,7 +31,7 @@ contract PurchaseValidator is Admin {
     /// @param nonce The current nonce for the user. This is represented as a
     /// uint256 value, but is actually 2 packed uint128's (queueId + nonce)
     /// @param signature A signed message specifying tx details
-    /// @return True if the purchase is valid
+    /// @return true if the purchase is valid
     function isPurchaseValid(
         address buyer,
         uint256[] memory catalystIds,
@@ -58,8 +58,7 @@ contract PurchaseValidator is Admin {
 
     /// @notice Update the signing wallet address
     /// @param newSigningWallet The new address of the signing wallet
-    function updateSigningWallet(address newSigningWallet) external {
-        require(_admin == msg.sender, "SENDER_NOT_ADMIN");
+    function updateSigningWallet(address newSigningWallet) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _signingWallet = newSigningWallet;
     }
 

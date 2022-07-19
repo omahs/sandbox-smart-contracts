@@ -1,5 +1,6 @@
 import {DeployFunction} from 'hardhat-deploy/types';
 import {HardhatRuntimeEnvironment} from 'hardhat/types';
+import {catalystPrices, gemPrices} from '../../data/starterPack/prices';
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const {deployments, getNamedAccounts} = hre;
@@ -12,11 +13,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   } = await getNamedAccounts();
 
   const TRUSTED_FORWARDER_V2 = await deployments.get('TRUSTED_FORWARDER_V2');
-
-  const sandContract = await deployments.get('Sand');
-
-  // const catalystGroup = await deployments.get('Catalyst'); // TODO:
-  // const gemGroup = await deployments.get('Gem'); // TODO:
+  const sandContract = await deployments.get('PolygonSand');
+  const gemsCatalystsRegistry = await deployments.get(
+    'PolygonGemsCatalystsRegistry'
+  );
 
   await deploy('PolygonStarterPack', {
     contract: 'StarterPackV2',
@@ -28,8 +28,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       sandContract.address,
       TRUSTED_FORWARDER_V2.address,
       starterPackSaleBeneficiary,
-      catalystAddresses,
-      gemAddresses,
+      gemsCatalystsRegistry,
       backendMessageSigner,
       catalystPrices,
       gemPrices,
