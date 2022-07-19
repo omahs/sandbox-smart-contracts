@@ -24,7 +24,7 @@ contract StarterPackV2 is PurchaseValidator, ERC2771Handler {
     mapping(uint16 => uint256) private _gemPrices;
     mapping(uint16 => uint256) private _gemPreviousPrices;
 
-    // The timestamp of the last pricechange
+    // The timestamp of the last price change
     uint256 private _priceChangeTimestamp;
 
     address payable internal _wallet;
@@ -89,13 +89,13 @@ contract StarterPackV2 is PurchaseValidator, ERC2771Handler {
         require(gemIds.length == gemPrices.length, "INVALID_GEM_INPUT");
         for (uint256 i = 0; i < catalystIds.length; i++) {
             uint16 id = uint16(catalystIds[i]);
-            require(_registry.doesCatalystExist(id), "INVALID_CAT_ID");
+            require(_catalystExists(id), "INVALID_CAT_ID");
             _catalystPreviousPrices[id] = _catalystPrices[id]; // TODO: make sure there is no scenario where previous and current are different lengths / IDs
             _catalystPrices[id] = catalystPrices[i];
         }
         for (uint256 i = 0; i < gemIds.length; i++) {
             uint16 id = uint16(gemIds[i]);
-            require(_registry.doesGemExist(id), "INVALID_GEM_ID");
+            require(_gemExists(id), "INVALID_GEM_ID");
             _gemPreviousPrices[id] = _gemPrices[id]; // TODO: make sure there is no scenario where previous and current are different lengths / IDs
             _gemPrices[id] = gemPrices[i];
         }
@@ -114,13 +114,11 @@ contract StarterPackV2 is PurchaseValidator, ERC2771Handler {
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         for (uint256 i = 0; i < catalystIds.length; i++) {
             uint16 id = uint16(catalystIds[i]);
-            require(_registry.doesCatalystExist(id), "INVALID_CAT_ID");
             _executeRegistryTransferCatalyst(id, address(this), to, _registry.getCatalyst(id).balanceOf(address(this)));
         }
         for (uint256 i = 0; i < gemIds.length; i++) {
             uint16 id = uint16(gemIds[i]);
-            require(_registry.doesGemExist(id), "INVALID_GEM_ID");
-            _registry.getGem(id).transferFrom(address(this), to, _registry.getGem(id).balanceOf(address(this)));
+            _executeRegistryTransferGem(id, address(this), to, _registry.getGem(id).balanceOf(address(this)));
         }
     }
 
@@ -163,7 +161,7 @@ contract StarterPackV2 is PurchaseValidator, ERC2771Handler {
                 message.gemIds,
                 message.gemQuantities
             );
-        _handlePurchaseWithSand(buyer, _wallet, address(_sand), amountInSand);
+        _transferSandPayment(buyer, _wallet, address(_sand), amountInSand);
         _transferCatalysts(message.catalystIds, message.catalystQuantities, buyer);
         _transferGems(message.gemIds, message.gemQuantities, buyer);
         emit Purchase(buyer, message, amountInSand, address(_sand), amountInSand);
@@ -226,18 +224,8 @@ contract StarterPackV2 is PurchaseValidator, ERC2771Handler {
     ) internal {
         for (uint256 i = 0; i < catalystIds.length; i++) {
             uint16 id = uint16(catalystIds[i]);
-            require(_registry.doesCatalystExist(id), "INVALID_ID");
             _executeRegistryTransferCatalyst(id, address(this), buyer, catalystQuantities[i]);
         }
-    }
-
-    function _executeRegistryTransferCatalyst(
-        uint16 catalystId,
-        address from,
-        address to,
-        uint256 quantity
-    ) internal {
-        _registry.getCatalyst(catalystId).transferFrom(from, to, quantity);
     }
 
     function _transferGems(
@@ -247,9 +235,18 @@ contract StarterPackV2 is PurchaseValidator, ERC2771Handler {
     ) internal {
         for (uint256 i = 0; i < gemIds.length; i++) {
             uint16 id = uint16(gemIds[i]);
-            require(_registry.doesGemExist(id), "INVALID_ID");
             _executeRegistryTransferGem(id, address(this), buyer, gemQuantities[i]);
         }
+    }
+
+    function _executeRegistryTransferCatalyst(
+        uint16 catalystId,
+        address from,
+        address to,
+        uint256 quantity
+    ) internal {
+        require(_catalystExists(catalystId), "INVALID_CAT_ID");
+        _registry.getCatalyst(catalystId).transferFrom(from, to, quantity);
     }
 
     function _executeRegistryTransferGem(
@@ -258,7 +255,16 @@ contract StarterPackV2 is PurchaseValidator, ERC2771Handler {
         address to,
         uint256 quantity
     ) internal {
+        require(_gemExists(gemId), "INVALID_GEM_ID");
         _registry.getGem(gemId).transferFrom(from, to, quantity);
+    }
+
+    function _catalystExists(uint16 catalystId) internal view returns (bool) {
+        return _registry.doesCatalystExist(catalystId);
+    }
+
+    function _gemExists(uint16 gemId) internal view returns (bool) {
+        return _registry.doesGemExist(gemId);
     }
 
     /// @dev Function to calculate the total price in SAND of the StarterPacks to be purchased
@@ -307,7 +313,7 @@ contract StarterPackV2 is PurchaseValidator, ERC2771Handler {
     }
 
     /// @dev Function to handle purchase with SAND
-    function _handlePurchaseWithSand(
+    function _transferSandPayment(
         address buyer,
         address payable paymentRecipient,
         address tokenAddress,
