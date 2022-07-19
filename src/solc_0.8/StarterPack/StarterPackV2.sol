@@ -246,7 +246,7 @@ contract StarterPackV2 is PurchaseValidator, ERC2771Handler {
         uint256 quantity
     ) internal {
         require(_catalystExists(catalystId), "INVALID_CAT_ID");
-        _registry.getCatalyst(catalystId).transferFrom(from, to, quantity);
+        require(_registry.getCatalyst(catalystId).transferFrom(from, to, quantity), "CATALYST_TRANSFER_FAILED");
     }
 
     function _executeRegistryTransferGem(
@@ -256,7 +256,7 @@ contract StarterPackV2 is PurchaseValidator, ERC2771Handler {
         uint256 quantity
     ) internal {
         require(_gemExists(gemId), "INVALID_GEM_ID");
-        _registry.getGem(gemId).transferFrom(from, to, quantity);
+        require(_registry.getGem(gemId).transferFrom(from, to, quantity), "GEM_TRANSFER_FAILED");
     }
 
     function _catalystExists(uint16 catalystId) internal view returns (bool) {
