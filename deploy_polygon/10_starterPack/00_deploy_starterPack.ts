@@ -1,6 +1,5 @@
 import {DeployFunction} from 'hardhat-deploy/types';
 import {HardhatRuntimeEnvironment} from 'hardhat/types';
-import {catalystPrices, gemPrices} from '../../data/starterPack/prices';
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const {deployments, getNamedAccounts} = hre;
@@ -28,10 +27,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       sandContract.address,
       TRUSTED_FORWARDER_V2.address,
       starterPackSaleBeneficiary,
-      gemsCatalystsRegistry,
       backendMessageSigner,
-      catalystPrices,
-      gemPrices,
+      gemsCatalystsRegistry,
     ],
   });
 };
