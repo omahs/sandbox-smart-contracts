@@ -1,5 +1,5 @@
 import {ethers, getNamedAccounts, getUnnamedAccounts} from 'hardhat';
-import {withSnapshot, setupUsers} from '../../utils';
+import {withSnapshot, setupUser} from '../../utils';
 import {gemsAndCatalystsFixtures} from '../../common/fixtures/gemAndCatalysts';
 import {BigNumber} from 'ethers';
 import {depositViaChildChainManager} from '../../polygon/sand/fixtures';
@@ -98,8 +98,7 @@ export const setupPolygonStarterPack = withSnapshot(
       unnamedAccounts[3] // several users are already taken by cats & gems fixture
     ); // buyer has 0 cats & gems
 
-    const otherAccounts = [...unnamedAccounts].splice(0, 3);
-    const users = await setupUsers(otherAccounts, {
+    const other = await setupUser(unnamedAccounts[4], {
       PolygonStarterPack,
     });
 
@@ -130,10 +129,10 @@ export const setupPolygonStarterPack = withSnapshot(
       rareCatalyst,
       epicCatalyst,
       legendaryCatalyst,
-      catalystOwner, // users[0]
-      gemOwner, // users[0]
-      buyer, // users[3]
-      users,
+      catalystOwner, // [0]
+      gemOwner, // [0]
+      buyer, // [3]
+      other,
     };
   }
 );

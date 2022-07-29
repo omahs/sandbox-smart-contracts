@@ -13,8 +13,8 @@ contract StarterPackV2 is PurchaseValidator, ERC2771Handler {
 
     // TODO: ordering
 
-    IERC20 internal immutable _sand;
-    GemsCatalystsRegistry internal immutable _registry;
+    address internal immutable _sand;
+    address internal immutable _registry;
 
     bool public _sandEnabled;
 
@@ -59,10 +59,10 @@ contract StarterPackV2 is PurchaseValidator, ERC2771Handler {
         address trustedForwarder,
         address payable initialWalletAddress,
         address initialSigningWallet,
-        GemsCatalystsRegistry registry
+        address registry
     ) PurchaseValidator(initialSigningWallet) {
         _setupRole(DEFAULT_ADMIN_ROLE, admin);
-        _sand = IERC20(sandContractAddress);
+        _sand = sandContractAddress;
         __ERC2771Handler_initialize(trustedForwarder);
         _wallet = initialWalletAddress;
         _registry = registry;
@@ -122,11 +122,21 @@ contract StarterPackV2 is PurchaseValidator, ERC2771Handler {
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         for (uint256 i = 0; i < catalystIds.length; i++) {
             uint16 id = uint16(catalystIds[i]);
-            _executeRegistryTransferCatalyst(id, address(this), to, _registry.getCatalyst(id).balanceOf(address(this)));
+            _executeRegistryTransferCatalyst(
+                id,
+                address(this),
+                to,
+                GemsCatalystsRegistry(_registry).getCatalyst(id).balanceOf(address(this))
+            );
         }
         for (uint256 i = 0; i < gemIds.length; i++) {
             uint16 id = uint16(gemIds[i]);
-            _executeRegistryTransferGem(id, address(this), to, _registry.getGem(id).balanceOf(address(this)));
+            _executeRegistryTransferGem(
+                id,
+                address(this),
+                to,
+                GemsCatalystsRegistry(_registry).getGem(id).balanceOf(address(this))
+            );
         }
     }
 
@@ -163,10 +173,10 @@ contract StarterPackV2 is PurchaseValidator, ERC2771Handler {
                 message.gemIds,
                 message.gemQuantities
             );
-        _transferSandPayment(buyer, _wallet, address(_sand), amountInSand);
+        _transferSandPayment(buyer, _wallet, amountInSand);
         _transferCatalysts(message.catalystIds, message.catalystQuantities, buyer);
         _transferGems(message.gemIds, message.gemQuantities, buyer);
-        emit Purchase(buyer, message, amountInSand, address(_sand), amountInSand);
+        emit Purchase(buyer, message, amountInSand, _sand, amountInSand);
     }
 
     /// @notice Get current StarterPack prices for catalysts and gems by id
@@ -253,8 +263,12 @@ contract StarterPackV2 is PurchaseValidator, ERC2771Handler {
         address to,
         uint256 quantity
     ) internal {
+        require(catalystId > 0, "ZERO_CAT_ID");
         require(_catalystExists(catalystId), "INVALID_CAT_ID");
-        require(_registry.getCatalyst(catalystId).transferFrom(from, to, quantity), "CATALYST_TRANSFER_FAILED");
+        require(
+            GemsCatalystsRegistry(_registry).getCatalyst(catalystId).transferFrom(from, to, quantity),
+            "CATALYST_TRANSFER_FAILED"
+        );
     }
 
     function _executeRegistryTransferGem(
@@ -263,16 +277,17 @@ contract StarterPackV2 is PurchaseValidator, ERC2771Handler {
         address to,
         uint256 quantity
     ) internal {
+        require(gemId > 0, "ZERO_GEM_ID");
         require(_gemExists(gemId), "INVALID_GEM_ID");
-        require(_registry.getGem(gemId).transferFrom(from, to, quantity), "GEM_TRANSFER_FAILED");
+        require(GemsCatalystsRegistry(_registry).getGem(gemId).transferFrom(from, to, quantity), "GEM_TRANSFER_FAILED");
     }
 
     function _catalystExists(uint16 catalystId) internal view returns (bool) {
-        return _registry.doesCatalystExist(catalystId);
+        return GemsCatalystsRegistry(_registry).doesCatalystExist(catalystId);
     }
 
     function _gemExists(uint16 gemId) internal view returns (bool) {
-        return _registry.doesGemExist(gemId);
+        return GemsCatalystsRegistry(_registry).doesGemExist(gemId);
     }
 
     /// @dev Function to calculate the total price in SAND of the StarterPacks to be purchased
@@ -324,12 +339,10 @@ contract StarterPackV2 is PurchaseValidator, ERC2771Handler {
     function _transferSandPayment(
         address buyer,
         address payable paymentRecipient,
-        address tokenAddress,
         uint256 amount
     ) internal {
-        IERC20 token = IERC20(tokenAddress);
         uint256 amountForDestination = amount;
-        require(token.transferFrom(buyer, paymentRecipient, amountForDestination), "PAYMENT_TRANSFER_FAILED"); // TODO: review
+        require(IERC20(_sand).transferFrom(buyer, paymentRecipient, amountForDestination), "PAYMENT_TRANSFER_FAILED"); // TODO: review
     }
 
     /// @dev this override is required
