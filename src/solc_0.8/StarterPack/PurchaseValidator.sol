@@ -9,8 +9,18 @@ contract PurchaseValidator is AccessControl {
     // A parallel-queue mapping to nonces.
     mapping(address => mapping(uint128 => uint128)) public queuedNonces;
 
+    event SigningWallet(address newSigningWallet);
+
     constructor(address initialSigningWallet) {
         _signingWallet = initialSigningWallet;
+    }
+
+    /// @notice Update the signing wallet address
+    /// @param newSigningWallet The new address of the signing wallet
+    function setSigningWallet(address newSigningWallet) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(newSigningWallet != address(0), "WALLET_ZERO_ADDRESS");
+        _signingWallet = newSigningWallet;
+        emit SigningWallet(newSigningWallet);
     }
 
     /// @notice Function to get the nonce for a given address and queue ID
@@ -54,12 +64,6 @@ contract PurchaseValidator is AccessControl {
     /// @return the address of the signing wallet
     function getSigningWallet() external view returns (address) {
         return _signingWallet;
-    }
-
-    /// @notice Update the signing wallet address
-    /// @param newSigningWallet The new address of the signing wallet
-    function updateSigningWallet(address newSigningWallet) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _signingWallet = newSigningWallet;
     }
 
     /// @dev Function for validating the nonce for a user.

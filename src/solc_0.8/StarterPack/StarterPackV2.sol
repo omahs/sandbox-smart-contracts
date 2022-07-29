@@ -33,7 +33,7 @@ contract StarterPackV2 is PurchaseValidator, ERC2771Handler {
     // Minimizes the effect of price changes on pending TXs
     uint256 private constant PRICE_CHANGE_DELAY = 1 hours;
 
-    event Wallet(address newWallet);
+    event ReceivingWallet(address newReceivingWallet);
 
     event Purchase(address indexed buyer, Message message, uint256 price, address token, uint256 amountPaid);
 
@@ -69,15 +69,23 @@ contract StarterPackV2 is PurchaseValidator, ERC2771Handler {
     }
 
     /// @notice Set the wallet receiving the proceeds
-    /// @param newWallet Address of the new receiving wallet
-    function setReceivingWallet(address payable newWallet) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(newWallet != address(0), "WALLET_ZERO_ADDRESS");
-        _wallet = newWallet;
-        emit Wallet(newWallet);
+    /// @param newReceivingWallet Address of the new receiving wallet
+    function setReceivingWallet(address payable newReceivingWallet) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(newReceivingWallet != address(0), "WALLET_ZERO_ADDRESS");
+        _wallet = newReceivingWallet;
+        emit ReceivingWallet(newReceivingWallet);
+    }
+
+    /// @dev Enable / disable the specific SAND payment for StarterPacks
+    /// @param enabled Whether to enable or disable
+    function setSANDEnabled(bool enabled) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _sandEnabled = enabled;
     }
 
     /// @notice Enables admin to change the prices (in SAND) of the catalysts and gems in the StarterPack bundle
+    /// @param catalystIds Array of catalyst IDs for which new prices will take effect after a delay period
     /// @param catalystPrices Array of new catalyst prices that will take effect after a delay period
+    /// @param gemIds Array of gem IDs for which new prices will take effect after a delay period
     /// @param gemPrices Array of new gems prices that will take effect after a delay period
     function setPrices(
         uint256[] calldata catalystIds,
@@ -90,13 +98,13 @@ contract StarterPackV2 is PurchaseValidator, ERC2771Handler {
         for (uint256 i = 0; i < catalystIds.length; i++) {
             uint16 id = uint16(catalystIds[i]);
             require(_catalystExists(id), "INVALID_CAT_ID");
-            _catalystPreviousPrices[id] = _catalystPrices[id]; // TODO: make sure there is no scenario where previous and current are different lengths / IDs
+            _catalystPreviousPrices[id] = _catalystPrices[id];
             _catalystPrices[id] = catalystPrices[i];
         }
         for (uint256 i = 0; i < gemIds.length; i++) {
             uint16 id = uint16(gemIds[i]);
             require(_gemExists(id), "INVALID_GEM_ID");
-            _gemPreviousPrices[id] = _gemPrices[id]; // TODO: make sure there is no scenario where previous and current are different lengths / IDs
+            _gemPreviousPrices[id] = _gemPrices[id];
             _gemPrices[id] = gemPrices[i];
         }
         _priceChangeTimestamp = block.timestamp;
@@ -120,12 +128,6 @@ contract StarterPackV2 is PurchaseValidator, ERC2771Handler {
             uint16 id = uint16(gemIds[i]);
             _executeRegistryTransferGem(id, address(this), to, _registry.getGem(id).balanceOf(address(this)));
         }
-    }
-
-    /// @dev Enable / disable the specific SAND payment for StarterPacks
-    /// @param enabled Whether to enable or disable
-    function setSANDEnabled(bool enabled) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _sandEnabled = enabled;
     }
 
     // TODO: test for reentrancy
@@ -215,6 +217,12 @@ contract StarterPackV2 is PurchaseValidator, ERC2771Handler {
     /// @return Whether SAND payments are enabled
     function isSANDEnabled() external view returns (bool) {
         return _sandEnabled;
+    }
+
+    /// @notice Get the beneficiary wallet.
+    /// @return the address of the receiving wallet
+    function getReceivingWallet() external view returns (address) {
+        return _wallet;
     }
 
     function _transferCatalysts(

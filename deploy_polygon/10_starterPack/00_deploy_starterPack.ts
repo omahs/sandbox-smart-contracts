@@ -1,5 +1,6 @@
 import {DeployFunction} from 'hardhat-deploy/types';
 import {HardhatRuntimeEnvironment} from 'hardhat/types';
+import {skipUnlessTestnet} from '../../utils/network';
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const {deployments, getNamedAccounts} = hre;
@@ -11,7 +12,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     backendMessageSigner,
   } = await getNamedAccounts();
 
-  const TRUSTED_FORWARDER_V2 = await deployments.get('TRUSTED_FORWARDER_V2');
+  const TRUSTED_FORWARDER_V2 = await deployments.getOrNull(
+    'TRUSTED_FORWARDER_V2'
+  );
   const sandContract = await deployments.get('PolygonSand');
   const gemsCatalystsRegistry = await deployments.get(
     'PolygonGemsCatalystsRegistry'
@@ -25,12 +28,19 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     args: [
       starterPackAdmin,
       sandContract.address,
-      TRUSTED_FORWARDER_V2.address,
+      TRUSTED_FORWARDER_V2?.address,
       starterPackSaleBeneficiary,
       backendMessageSigner,
-      gemsCatalystsRegistry,
+      gemsCatalystsRegistry.address,
     ],
   });
 };
 export default func;
+
 func.tags = ['PolygonStarterPack', 'PolygonStarterPack_deploy', 'L2'];
+func.dependencies = [
+  'TRUSTED_FORWARDER_V2',
+  'PolygonSand',
+  'PolygonGemsCatalystsRegistry',
+];
+func.skip = skipUnlessTestnet;
