@@ -44,6 +44,12 @@ const catPrices = [
   '15000000000000000000',
   '100000000000000000000',
 ];
+const catPrices2 = [
+  '5000000000000000000',
+  '17000000000000000000',
+  '15000000000000000000',
+  '200000000000000000000',
+];
 const gemIds = [1, 2, 3, 4, 5];
 const gemPrices = [
   '5000000000000000000',
@@ -52,8 +58,15 @@ const gemPrices = [
   '10000000000000000000',
   '5000000000000000000',
 ];
+const gemPrices2 = [
+  '2000000000000000000',
+  '10000000000000000000',
+  '5000000000000000000',
+  '10000000000000000000',
+  '10000000000000000000',
+];
 
-// Helper example for calculating spend
+// Helper examples for calculating spend
 function calculateSpend() {
   return BigNumber.from(catPrices[0])
     .add(BigNumber.from(catPrices[1]))
@@ -64,6 +77,18 @@ function calculateSpend() {
     .add(BigNumber.from(gemPrices[2]).mul(2))
     .add(BigNumber.from(gemPrices[3]).mul(2))
     .add(BigNumber.from(gemPrices[4]).mul(2));
+}
+
+function calculateSpend2() {
+  return BigNumber.from(catPrices2[0])
+    .add(BigNumber.from(catPrices2[1]))
+    .add(BigNumber.from(catPrices2[2]))
+    .add(BigNumber.from(catPrices2[3]))
+    .add(BigNumber.from(gemPrices2[0]).mul(2))
+    .add(BigNumber.from(gemPrices2[1]).mul(2))
+    .add(BigNumber.from(gemPrices2[2]).mul(2))
+    .add(BigNumber.from(gemPrices2[3]).mul(2))
+    .add(BigNumber.from(gemPrices2[4]).mul(2));
 }
 
 // Bad test params
@@ -544,13 +569,47 @@ describe.only('PolygonStarterPack.sol', function () {
         )
       ).to.be.revertedWith('INVALID_GEM_ID');
     });
-    it('cannot withdraw cats and gems if contract holds none', async function () {
-      const {other} = await setupPolygonStarterPack();
-      // TODO: purchase first then withdraw
-    });
     it('withdrawal does not fail for zero balances if id exists', async function () {
-      const {other} = await setupPolygonStarterPack();
-      // TODO: purchase first then withdraw
+      const {
+        buyer,
+        PolygonStarterPackAsAdmin,
+        PolygonStarterPack,
+        other,
+      } = await setupPolygonStarterPack();
+      await PolygonStarterPackAsAdmin.setSANDEnabled(true);
+      await PolygonStarterPackAsAdmin.setPrices(
+        catalystIds,
+        catPrices,
+        gemIds,
+        gemPrices
+      );
+      // fast forward 1 hour so the new prices are in effect
+      await increaseTime(3600);
+      const Message = {
+        catalystIds,
+        catalystQuantities: [100, 100, 100, 100],
+        gemIds,
+        gemQuantities: [100, 100, 100, 100, 100],
+        nonce: 0,
+      };
+      const signature = signPurchaseMessage(privateKey, Message, buyer.address);
+      // approve SAND
+      await buyer.sandContract.approve(
+        PolygonStarterPack.address,
+        constants.MaxUint256
+      );
+      await buyer.PolygonStarterPack.purchaseWithSAND(
+        buyer.address,
+        Message,
+        signature
+      );
+      await expect(
+        PolygonStarterPackAsAdmin.withdrawAll(
+          other.address,
+          [1, 2, 3, 4],
+          [1, 2, 3, 4, 5]
+        )
+      ).to.be.ok;
     });
   });
   describe('purchaseWithSAND', function () {
@@ -954,12 +1013,148 @@ describe.only('PolygonStarterPack.sol', function () {
       ).to.be.revertedWith('INVALID_SENDER');
     });
     it('purchase occurs with old prices if price change has not yet taken effect', async function () {
-      const {PolygonStarterPackAsAdmin} = await setupPolygonStarterPack();
-      // TODO:
+      const {
+        buyer,
+        PolygonStarterPackAsAdmin,
+        PolygonStarterPack,
+        sandContract,
+      } = await setupPolygonStarterPack();
+      await PolygonStarterPackAsAdmin.setSANDEnabled(true);
+      await PolygonStarterPackAsAdmin.setPrices(
+        catalystIds,
+        catPrices,
+        gemIds,
+        gemPrices
+      );
+      // fast forward <1 hour so the new prices are not yet in effect
+      await increaseTime(3000);
+      const Message = {...TestMessage};
+      const signature = signPurchaseMessage(privateKey, Message, buyer.address);
+      const balance = await sandContract.balanceOf(buyer.address);
+      const totalSpend = calculateSpend();
+      // approve SAND
+      await buyer.sandContract.approve(
+        PolygonStarterPack.address,
+        constants.MaxUint256
+      );
+      await expect(
+        buyer.PolygonStarterPack.purchaseWithSAND(
+          buyer.address,
+          Message,
+          signature
+        )
+      ).to.be.ok;
+      const totalPriceToPay = await PolygonStarterPack.callStatic.calculateTotalPriceInSAND(
+        Message.catalystIds,
+        Message.catalystQuantities,
+        Message.gemIds,
+        Message.gemQuantities
+      );
+      expect(totalSpend).not.to.eq(totalPriceToPay);
+      expect(totalPriceToPay).to.eq(0);
+      expect(await sandContract.balanceOf(buyer.address)).to.eq(balance);
     });
-    it('purchase fails with updated prices after price change delay', async function () {
-      const {PolygonStarterPackAsAdmin} = await setupPolygonStarterPack();
-      // TODO:
+    it('purchase occurs with updated prices after price change delay', async function () {
+      const {
+        buyer,
+        PolygonStarterPackAsAdmin,
+        PolygonStarterPack,
+        sandContract,
+      } = await setupPolygonStarterPack();
+      await PolygonStarterPackAsAdmin.setSANDEnabled(true);
+      await PolygonStarterPackAsAdmin.setPrices(
+        catalystIds,
+        catPrices,
+        gemIds,
+        gemPrices
+      );
+      // fast forward 1 hour so the new prices are in effect
+      await increaseTime(3600);
+      await PolygonStarterPackAsAdmin.setPrices(
+        catalystIds,
+        catPrices2,
+        gemIds,
+        gemPrices2
+      );
+      // fast forward 1 hour so the new prices are in effect
+      await increaseTime(3600);
+      const Message = {...TestMessage};
+      const signature = signPurchaseMessage(privateKey, Message, buyer.address);
+      const balance = await sandContract.balanceOf(buyer.address);
+      const totalSpend = calculateSpend2();
+      // approve SAND
+      await buyer.sandContract.approve(
+        PolygonStarterPack.address,
+        constants.MaxUint256
+      );
+      await expect(
+        buyer.PolygonStarterPack.purchaseWithSAND(
+          buyer.address,
+          Message,
+          signature
+        )
+      ).to.be.ok;
+      const totalPriceToPay = await PolygonStarterPack.callStatic.calculateTotalPriceInSAND(
+        Message.catalystIds,
+        Message.catalystQuantities,
+        Message.gemIds,
+        Message.gemQuantities
+      );
+      expect(totalSpend).to.eq(totalPriceToPay);
+      expect(await sandContract.balanceOf(buyer.address)).to.eq(
+        balance.sub(totalSpend)
+      );
+    });
+    it('purchase occurs with first price change before second price change has taken effect', async function () {
+      const {
+        buyer,
+        PolygonStarterPackAsAdmin,
+        PolygonStarterPack,
+        sandContract,
+      } = await setupPolygonStarterPack();
+      await PolygonStarterPackAsAdmin.setSANDEnabled(true);
+      await PolygonStarterPackAsAdmin.setPrices(
+        catalystIds,
+        catPrices,
+        gemIds,
+        gemPrices
+      );
+      // fast forward 1 hour so the first price change is in effect
+      await increaseTime(3600);
+      await PolygonStarterPackAsAdmin.setPrices(
+        catalystIds,
+        catPrices2,
+        gemIds,
+        gemPrices2
+      );
+      // fast forward <1 hour so the new prices are not yet in effect
+      await increaseTime(2900);
+      const Message = {...TestMessage};
+      const signature = signPurchaseMessage(privateKey, Message, buyer.address);
+      const balance = await sandContract.balanceOf(buyer.address);
+      const totalSpend = calculateSpend();
+      // approve SAND
+      await buyer.sandContract.approve(
+        PolygonStarterPack.address,
+        constants.MaxUint256
+      );
+      await expect(
+        buyer.PolygonStarterPack.purchaseWithSAND(
+          buyer.address,
+          Message,
+          signature
+        )
+      ).to.be.ok;
+      const totalPriceToPay = await PolygonStarterPack.callStatic.calculateTotalPriceInSAND(
+        Message.catalystIds,
+        Message.catalystQuantities,
+        Message.gemIds,
+        Message.gemQuantities
+      );
+      expect(totalSpend).to.eq(totalPriceToPay);
+      expect(await sandContract.balanceOf(buyer.address)).to.eq(
+        balance.sub(totalSpend)
+      );
     });
   });
   describe('getPrices', function () {
