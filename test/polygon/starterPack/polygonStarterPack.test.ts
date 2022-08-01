@@ -53,12 +53,12 @@ const gemPrices = [
   '5000000000000000000',
 ];
 
+// Helper example for calculating spend
 function calculateSpend() {
   return BigNumber.from(catPrices[0])
-    .mul(1)
-    .add(BigNumber.from(catPrices[2]).mul(1))
-    .add(BigNumber.from(catPrices[3]).mul(1))
-    .add(BigNumber.from(catPrices[3]).mul(1))
+    .add(BigNumber.from(catPrices[1]))
+    .add(BigNumber.from(catPrices[2]))
+    .add(BigNumber.from(catPrices[3]))
     .add(BigNumber.from(gemPrices[0]).mul(2))
     .add(BigNumber.from(gemPrices[1]).mul(2))
     .add(BigNumber.from(gemPrices[2]).mul(2))
@@ -241,7 +241,7 @@ describe.only('PolygonStarterPack.sol', function () {
       );
     });
   });
-  describe('setSandEnabled', function () {
+  describe('setSANDEnabled', function () {
     it('default admin can set SAND enabled', async function () {
       const {PolygonStarterPackAsAdmin} = await setupPolygonStarterPack();
       expect(await PolygonStarterPackAsAdmin.setSANDEnabled(true)).to.be.ok;
@@ -548,12 +548,12 @@ describe.only('PolygonStarterPack.sol', function () {
       const {other} = await setupPolygonStarterPack();
       // TODO: purchase first then withdraw
     });
-    it('withdrawal does not fail for zero balances', async function () {
+    it('withdrawal does not fail for zero balances if id exists', async function () {
       const {other} = await setupPolygonStarterPack();
       // TODO: purchase first then withdraw
     });
   });
-  describe('purchaseWithSand', function () {
+  describe('purchaseWithSAND', function () {
     it('can purchase bundle of cats and gems when SAND is enabled - zero prices', async function () {
       const {
         other,
@@ -570,7 +570,7 @@ describe.only('PolygonStarterPack.sol', function () {
         )
       ).to.be.ok;
     });
-    it('can purchase bundle of cats and gems when SAND is enabled and prices are >0', async function () {
+    it('can purchase bundle of cats and gems when SAND is enabled and prices are >0 with correct SAND amount', async function () {
       const {
         buyer,
         PolygonStarterPackAsAdmin,
@@ -602,6 +602,13 @@ describe.only('PolygonStarterPack.sol', function () {
           signature
         )
       ).to.be.ok;
+      const totalPriceToPay = await PolygonStarterPack.callStatic.calculateTotalPriceInSAND(
+        Message.catalystIds,
+        Message.catalystQuantities,
+        Message.gemIds,
+        Message.gemQuantities
+      );
+      expect(totalSpend).to.eq(totalPriceToPay);
       expect(await sandContract.balanceOf(buyer.address)).to.eq(
         balance.sub(totalSpend)
       );
@@ -731,6 +738,7 @@ describe.only('PolygonStarterPack.sol', function () {
         PolygonStarterPack.address,
         constants.MaxUint256
       );
+      // remove cats & gems so contract is empty
       await PolygonStarterPackAsAdmin.withdrawAll(
         other.address,
         [1, 2, 3, 4],
@@ -742,7 +750,7 @@ describe.only('PolygonStarterPack.sol', function () {
           Message,
           signature
         )
-      ).to.be.revertedWith('CATALYST_TRANSFER_FAILED');
+      ).to.be.revertedWith('INSUFFICIENT_FUNDS'); // ERC20BaseTokenUpgradeable error message in Catalyst and Gem contracts
     });
     it('purchase fails with incorrect backend signature param', async function () {
       const {

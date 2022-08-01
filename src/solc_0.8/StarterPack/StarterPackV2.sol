@@ -162,20 +162,21 @@ contract StarterPackV2 is PurchaseValidator, ERC2771Handler {
             "INVALID_PURCHASE"
         );
 
-        uint256 amountInSand =
-            _calculateTotalPriceInSand(
+        uint256 amountInSAND =
+            _calculateTotalPriceInSAND(
                 message.catalystIds,
                 message.catalystQuantities,
                 message.gemIds,
                 message.gemQuantities
             );
-        _transferSandPayment(buyer, _wallet, amountInSand);
+        _transferSANDPayment(buyer, _wallet, amountInSAND);
         _transferCatalysts(message.catalystIds, message.catalystQuantities, buyer);
         _transferGems(message.gemIds, message.gemQuantities, buyer);
-        emit Purchase(buyer, message, amountInSand, _sand, amountInSand);
+        emit Purchase(buyer, message, amountInSAND, _sand, amountInSAND);
     }
 
     /// @notice Get current StarterPack prices for catalysts and gems by id
+    // TODO: params
     /// @return catalystPricesBeforeSwitch Catalyst prices before price change
     /// @return catalystPricesAfterSwitch Catalyst prices after price change
     /// @return gemPricesBeforeSwitch Gem prices before price change
@@ -229,6 +230,18 @@ contract StarterPackV2 is PurchaseValidator, ERC2771Handler {
     /// @return the address of the receiving wallet
     function getReceivingWallet() external view returns (address) {
         return _wallet;
+    }
+
+    /// @notice Verify the total expected price to pay in SAND
+    // TODO: params
+    /// @return the total price to pay in SAND for the cats and gems in the bundle
+    function calculateTotalPriceInSAND(
+        uint256[] memory catalystIds,
+        uint256[] memory catalystQuantities,
+        uint256[] memory gemIds,
+        uint256[] memory gemQuantities
+    ) external returns (uint256) {
+        return _calculateTotalPriceInSAND(catalystIds, catalystQuantities, gemIds, gemQuantities);
     }
 
     function _transferCatalysts(
@@ -296,7 +309,7 @@ contract StarterPackV2 is PurchaseValidator, ERC2771Handler {
     }
 
     /// @dev Function to calculate the total price in SAND of the StarterPacks to be purchased
-    function _calculateTotalPriceInSand(
+    function _calculateTotalPriceInSAND(
         uint256[] memory catalystIds,
         uint256[] memory catalystQuantities,
         uint256[] memory gemIds,
@@ -311,12 +324,14 @@ contract StarterPackV2 is PurchaseValidator, ERC2771Handler {
             uint256 quantity = catalystQuantities[i];
             totalPrice =
                 totalPrice +
-                (useCurrentPrices ? _catalystPrices[id] : _catalystPreviousPrices[id] * (quantity));
+                (useCurrentPrices ? _catalystPrices[id] * (quantity) : _catalystPreviousPrices[id] * (quantity));
         }
         for (uint256 i = 0; i < gemIds.length; i++) {
             uint16 id = uint16(gemIds[i]);
             uint256 quantity = gemQuantities[i];
-            totalPrice = totalPrice + (useCurrentPrices ? _gemPrices[id] : _gemPreviousPrices[id] * (quantity));
+            totalPrice =
+                totalPrice +
+                (useCurrentPrices ? _gemPrices[id] * (quantity) : _gemPreviousPrices[id] * (quantity));
         }
         return totalPrice;
     }
@@ -341,7 +356,7 @@ contract StarterPackV2 is PurchaseValidator, ERC2771Handler {
     }
 
     /// @dev Function to handle purchase with SAND
-    function _transferSandPayment(
+    function _transferSANDPayment(
         address buyer,
         address payable paymentRecipient,
         uint256 amount
