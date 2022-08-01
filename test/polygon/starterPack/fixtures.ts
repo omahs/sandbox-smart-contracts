@@ -93,14 +93,16 @@ export const setupPolygonStarterPack = withSnapshot(
       .mint(PolygonStarterPack.address, mintingAmount);
     // -----------------------------------------------
 
-    const buyer = await ethers.getContract(
-      'PolygonStarterPack',
-      unnamedAccounts[3] // several users are already taken by cats & gems fixture
-    ); // buyer has 0 cats & gems
+    const buyer = await setupUser(unnamedAccounts[3], {
+      PolygonStarterPack,
+      sandContract,
+    }); // several users are already taken by cats & gems fixture
+    // buyer is given sand
 
     const other = await setupUser(unnamedAccounts[4], {
       PolygonStarterPack,
-    });
+      sandContract,
+    }); // has 0 sand
 
     // Give the buyer some SAND. Note: the only way to deposit PolygonSand in L2 is via the childChainManager
     const childChainManager = await ethers.getContract('CHILD_CHAIN_MANAGER');
