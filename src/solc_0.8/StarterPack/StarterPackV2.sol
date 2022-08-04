@@ -3,7 +3,7 @@ pragma solidity 0.8.2;
 import "./PurchaseValidator.sol";
 import "../catalyst/GemsCatalystsRegistry.sol";
 import "../common/BaseWithStorage/ERC2771Handler.sol";
-import "../common/Libraries/SafeMathWithRequire.sol"; // TODO: check
+import "../common/Libraries/SafeMathWithRequire.sol";
 
 /// @title StarterPack contract that supports SAND as payment
 /// @notice This contract manages the purchase and distribution of StarterPacks (bundles of Catalysts and Gems)
@@ -11,11 +11,8 @@ contract StarterPackV2 is PurchaseValidator, ERC2771Handler {
     using SafeMathWithRequire for uint256;
     uint256 private constant DECIMAL_PLACES = 1 ether;
 
-    // TODO: ordering
-
     address internal immutable _sand;
     address internal immutable _registry;
-
     bool public _sandEnabled;
 
     // Mapping catalyst and gem ids to their prices
@@ -136,10 +133,9 @@ contract StarterPackV2 is PurchaseValidator, ERC2771Handler {
         }
     }
 
-    // TODO: test for reentrancy
     /// @notice Purchase StarterPacks with SAND
     /// @param buyer The destination address for the purchased Catalysts and Gems and the address that will pay for the purchase; if not metaTx then buyer must be equal to msg.sender
-    /// @param message A message containing information about the Catalysts and Gems to be purchased
+    /// @param message A message containing information about the Catalysts and Gems to be purchased together with a nonce
     /// @param signature A signed message specifying tx details
     function purchaseWithSAND(
         address buyer,
@@ -175,7 +171,8 @@ contract StarterPackV2 is PurchaseValidator, ERC2771Handler {
     }
 
     /// @notice Get current StarterPack prices for catalysts and gems by id
-    // TODO: params
+    /// @param catalystIds The IDs of the catalysts you want to obtain price information for
+    /// @param gemIds The IDs of the gems you want to obtain price information for
     /// @return catalystPricesBeforeSwitch Catalyst prices before price change
     /// @return catalystPricesAfterSwitch Catalyst prices after price change
     /// @return gemPricesBeforeSwitch Gem prices before price change
@@ -232,7 +229,10 @@ contract StarterPackV2 is PurchaseValidator, ERC2771Handler {
     }
 
     /// @notice Verify the total expected price to pay in SAND
-    // TODO: params
+    /// @param catalystIds An array of catalyst IDs to be purchased
+    /// @param catalystQuantities An array of catalyst amounts to be purchased
+    /// @param gemIds An array of gem IDs to be purchased
+    /// @param gemQuantities An array of gem amounts to be purchased
     /// @return the total price to pay in SAND for the cats and gems in the bundle
     function calculateTotalPriceInSAND(
         uint256[] memory catalystIds,
@@ -285,26 +285,20 @@ contract StarterPackV2 is PurchaseValidator, ERC2771Handler {
         require(gem.transferFrom(from, to, quantity), "GEM_TRANSFER_FAILED");
     }
 
-    function _getCatalyst(uint16 catalystId) internal returns (ICatalyst) {
+    function _getCatalyst(uint16 catalystId) internal view returns (ICatalyst) {
         return GemsCatalystsRegistry(_registry).getCatalyst(catalystId);
     }
 
     function _isValidCatalyst(uint16 catalystId) internal view returns (bool) {
-        return
-            GemsCatalystsRegistry(_registry).doesCatalystExist(catalystId) &&
-            // address(catalyst) != address(0) &&
-            catalystId > 0;
+        return GemsCatalystsRegistry(_registry).doesCatalystExist(catalystId) && catalystId > 0;
     }
 
-    function _getGem(uint16 gemId) internal returns (IGem) {
+    function _getGem(uint16 gemId) internal view returns (IGem) {
         return GemsCatalystsRegistry(_registry).getGem(gemId);
     }
 
     function _isValidGem(uint16 gemId) internal view returns (bool) {
-        return
-            GemsCatalystsRegistry(_registry).doesGemExist(gemId) &&
-            // && address(gem) != address(0)
-            gemId > 0;
+        return GemsCatalystsRegistry(_registry).doesGemExist(gemId) && gemId > 0;
     }
 
     /// @dev Function to calculate the total price in SAND of the StarterPacks to be purchased
