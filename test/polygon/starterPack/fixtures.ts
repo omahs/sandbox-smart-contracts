@@ -113,6 +113,8 @@ export const setupPolygonStarterPack = withSnapshot(
       sandAmount
     );
 
+    const trustedForwarder = await ethers.getContract('TRUSTED_FORWARDER_V2');
+
     return {
       PolygonStarterPack,
       PolygonStarterPackAsAdmin,
@@ -135,6 +137,7 @@ export const setupPolygonStarterPack = withSnapshot(
       gemOwner, // [0]
       buyer, // [3]
       other,
+      trustedForwarder,
     };
   }
 );

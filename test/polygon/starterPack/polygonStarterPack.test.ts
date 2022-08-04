@@ -1,9 +1,15 @@
 import {setupPolygonStarterPack} from './fixtures';
-import {waitFor, expectEventWithArgs, increaseTime} from '../../utils';
+import {
+  waitFor,
+  expectEventWithArgs,
+  expectEventWithArgsFromReceipt,
+  increaseTime,
+} from '../../utils';
 import {expect} from '../../chai-setup';
 import {ethers} from 'hardhat';
 import {BigNumber} from '@ethersproject/bignumber';
-import {Wallet, constants} from 'ethers';
+import {Wallet, constants, utils} from 'ethers';
+import {sendMetaTx} from '../../sendMetaTx';
 const {solidityKeccak256, arrayify} = ethers.utils;
 
 const privateKey =
@@ -14,7 +20,7 @@ type Message = {
   catalystQuantities: number[];
   gemIds: number[];
   gemQuantities: number[];
-  nonce: number;
+  nonce: number | string;
 };
 
 function signPurchaseMessage(
@@ -97,6 +103,7 @@ const badGemIds = [8, 100, 3, 9, 5];
 const zeroCatId = [1, 2, 3, 0];
 const zeroGemId = [0, 2, 4, 1, 5];
 
+// Test Message structure
 const TestMessage = {
   catalystIds,
   catalystQuantities: [1, 1, 1, 1],
@@ -105,7 +112,17 @@ const TestMessage = {
   nonce: 0,
 };
 
-describe.only('PolygonStarterPack.sol', function () {
+// Nonce packer helper function
+const getPackedNonce = (nonce: number, queueId: number) => {
+  const paddedNonce = utils
+    .hexZeroPad(utils.hexValue(nonce), 16)
+    .replace(/0x/, '');
+  const hexQueueID = utils.hexZeroPad(utils.hexValue(queueId), 16);
+  const concatedNonce = hexQueueID.concat(paddedNonce);
+  return concatedNonce;
+};
+
+describe('PolygonStarterPack.sol', function () {
   describe('PurchaseValidator.sol', function () {
     it('can get the backend signing wallet', async function () {
       const {
@@ -154,46 +171,6 @@ describe.only('PolygonStarterPack.sol', function () {
       ).to.be.revertedWith(
         'AccessControl: account 0xbcd4042de499d14e55001ccbb24a551f3b954096 is missing role 0x0000000000000000000000000000000000000000000000000000000000000000'
       );
-    });
-    it('allows multiple nonce queues', async function () {
-      const {
-        PolygonStarterPack,
-        starterPackAdmin,
-        defaultAdminRole,
-      } = await setupPolygonStarterPack();
-      // TODO:
-    });
-    it('order of cat IDs should not matter', async function () {
-      const {
-        PolygonStarterPack,
-        starterPackAdmin,
-        defaultAdminRole,
-      } = await setupPolygonStarterPack();
-      // TODO:
-    });
-    it('order of gem IDs should not matter', async function () {
-      const {
-        PolygonStarterPack,
-        starterPackAdmin,
-        defaultAdminRole,
-      } = await setupPolygonStarterPack();
-      // TODO:
-    });
-    it('can get nonce for a buyer', async function () {
-      const {
-        PolygonStarterPack,
-        starterPackAdmin,
-        defaultAdminRole,
-      } = await setupPolygonStarterPack();
-      // TODO:
-    });
-    it('cannot reuse nonce', async function () {
-      const {
-        PolygonStarterPack,
-        starterPackAdmin,
-        defaultAdminRole,
-      } = await setupPolygonStarterPack();
-      // TODO:
     });
   });
   describe('Roles', function () {
@@ -466,7 +443,7 @@ describe.only('PolygonStarterPack.sol', function () {
       expect(newGemPrices[0]).to.be.eq(BigNumber.from('10000000000000000000'));
 
       const block = await ethers.provider.getBlock(receipt.blockHash);
-      expect(priceChangeTimestamp).to.be.eq(block.timestamp);
+      expect(priceChangeTimestamp).to.be.eq(block.timestamp); // price change timestamp, when setPrices was called
     });
   });
   describe('withdrawAll', function () {
@@ -635,6 +612,15 @@ describe.only('PolygonStarterPack.sol', function () {
         PolygonStarterPackAsAdmin,
         PolygonStarterPack,
         sandContract,
+        powerGem,
+        defenseGem,
+        speedGem,
+        magicGem,
+        luckGem,
+        commonCatalyst,
+        rareCatalyst,
+        epicCatalyst,
+        legendaryCatalyst,
       } = await setupPolygonStarterPack();
       await PolygonStarterPackAsAdmin.setSANDEnabled(true);
       await PolygonStarterPackAsAdmin.setPrices(
@@ -671,6 +657,34 @@ describe.only('PolygonStarterPack.sol', function () {
       expect(await sandContract.balanceOf(buyer.address)).to.eq(
         balance.sub(totalSpend)
       );
+
+      expect(await powerGem.balanceOf(buyer.address)).to.be.eq(
+        BigNumber.from(Message.gemQuantities[0])
+      );
+      expect(await defenseGem.balanceOf(buyer.address)).to.be.eq(
+        BigNumber.from(Message.gemQuantities[1])
+      );
+      expect(await speedGem.balanceOf(buyer.address)).to.be.eq(
+        BigNumber.from(Message.gemQuantities[2])
+      );
+      expect(await magicGem.balanceOf(buyer.address)).to.be.eq(
+        BigNumber.from(Message.gemQuantities[3])
+      );
+      expect(await luckGem.balanceOf(buyer.address)).to.be.eq(
+        BigNumber.from(Message.gemQuantities[4])
+      );
+      expect(await commonCatalyst.balanceOf(buyer.address)).to.be.eq(
+        BigNumber.from(Message.catalystQuantities[0])
+      );
+      expect(await rareCatalyst.balanceOf(buyer.address)).to.be.eq(
+        BigNumber.from(Message.catalystQuantities[1])
+      );
+      expect(await epicCatalyst.balanceOf(buyer.address)).to.be.eq(
+        BigNumber.from(Message.catalystQuantities[2])
+      );
+      expect(await legendaryCatalyst.balanceOf(buyer.address)).to.be.eq(
+        BigNumber.from(Message.catalystQuantities[3])
+      );
     });
     it('cannot purchase bundle of cats and gems when SAND is not enabled', async function () {
       const {other} = await setupPolygonStarterPack();
@@ -689,6 +703,7 @@ describe.only('PolygonStarterPack.sol', function () {
         buyer,
         PolygonStarterPackAsAdmin,
         PolygonStarterPack,
+        sandContract,
       } = await setupPolygonStarterPack();
       await PolygonStarterPackAsAdmin.setSANDEnabled(true);
       await PolygonStarterPackAsAdmin.setPrices(
@@ -701,6 +716,7 @@ describe.only('PolygonStarterPack.sol', function () {
       await increaseTime(3600);
       const Message = {...TestMessage};
       const signature = signPurchaseMessage(privateKey, Message, buyer.address);
+      const totalSpend = calculateSpend();
       // approve SAND
       await buyer.sandContract.approve(
         PolygonStarterPack.address,
@@ -718,7 +734,39 @@ describe.only('PolygonStarterPack.sol', function () {
         receipt,
         'Purchase'
       );
-      // TODO: args
+      // Event arguments: Purchase(address indexed buyer, Message message, uint256amountPaid, address token)
+      const buyerAddress = event.args[0];
+      const eventMessage = event.args[1];
+      const amountPaidInSand = event.args[2];
+      const sandTokenAddress = event.args[3];
+
+      expect(buyerAddress).to.be.equal(buyer.address);
+      expect(amountPaidInSand).to.be.equal(totalSpend);
+      expect(sandTokenAddress).to.be.equal(sandContract.address);
+
+      expect(eventMessage[0][0]).to.be.equal(Message.catalystIds[0]);
+      expect(eventMessage[0][1]).to.be.equal(Message.catalystIds[1]);
+      expect(eventMessage[0][2]).to.be.equal(Message.catalystIds[2]);
+      expect(eventMessage[0][3]).to.be.equal(Message.catalystIds[3]);
+
+      expect(eventMessage[1][0]).to.be.equal(Message.catalystQuantities[0]);
+      expect(eventMessage[1][1]).to.be.equal(Message.catalystQuantities[1]);
+      expect(eventMessage[1][2]).to.be.equal(Message.catalystQuantities[2]);
+      expect(eventMessage[1][3]).to.be.equal(Message.catalystQuantities[3]);
+
+      expect(eventMessage[2][0]).to.be.equal(Message.gemIds[0]);
+      expect(eventMessage[2][1]).to.be.equal(Message.gemIds[1]);
+      expect(eventMessage[2][2]).to.be.equal(Message.gemIds[2]);
+      expect(eventMessage[2][3]).to.be.equal(Message.gemIds[3]);
+      expect(eventMessage[2][4]).to.be.equal(Message.gemIds[4]);
+
+      expect(eventMessage[3][0]).to.be.equal(Message.gemQuantities[0]);
+      expect(eventMessage[3][1]).to.be.equal(Message.gemQuantities[1]);
+      expect(eventMessage[3][2]).to.be.equal(Message.gemQuantities[2]);
+      expect(eventMessage[3][3]).to.be.equal(Message.gemQuantities[3]);
+      expect(eventMessage[3][4]).to.be.equal(Message.gemQuantities[4]);
+
+      expect(eventMessage[4]).to.be.equal(Message.nonce);
     });
     it('cannot purchase bundle of cats and gems without enough SAND', async function () {
       const {
@@ -1156,58 +1204,302 @@ describe.only('PolygonStarterPack.sol', function () {
         balance.sub(totalSpend)
       );
     });
+    it('allows multiple nonce queues for a given buyer', async function () {
+      const {
+        buyer,
+        PolygonStarterPackAsAdmin,
+        PolygonStarterPack,
+      } = await setupPolygonStarterPack();
+      await PolygonStarterPackAsAdmin.setSANDEnabled(true);
+      await PolygonStarterPackAsAdmin.setPrices(
+        catalystIds,
+        catPrices,
+        gemIds,
+        gemPrices
+      );
+      // fast forward 1 hour so the new prices are in effect
+      await increaseTime(3600);
+      await PolygonStarterPackAsAdmin.setPrices(
+        catalystIds,
+        catPrices2,
+        gemIds,
+        gemPrices2
+      );
+      // fast forward 1 hour so the new prices are in effect
+      await increaseTime(3600);
+
+      // Nonce setup
+      // Queue id 0
+      const nonceForqueueId0 = await PolygonStarterPack.getNonceByBuyer(
+        buyer.address,
+        0
+      );
+      expect(nonceForqueueId0).to.be.equal(0);
+      // Queue id 454
+      const nonceForqueueId454 = await PolygonStarterPack.getNonceByBuyer(
+        buyer.address,
+        454
+      );
+      expect(nonceForqueueId454).to.be.equal(0);
+
+      // for the default queueId=0, we can just pass the nonce
+      const message = {
+        catalystIds,
+        catalystQuantities: [1, 1, 1, 1],
+        gemIds,
+        gemQuantities: [2, 2, 2, 2, 2],
+        nonce: nonceForqueueId0,
+      };
+      let signature = signPurchaseMessage(privateKey, message, buyer.address);
+
+      // approve SAND
+      await buyer.sandContract.approve(
+        PolygonStarterPack.address,
+        constants.MaxUint256
+      );
+
+      // To get the nonce, we simply pass the buyer address & queueID
+      await expect(
+        buyer.PolygonStarterPack.purchaseWithSAND(
+          buyer.address,
+          message,
+          signature
+        )
+      ).to.be.ok;
+
+      let nonce = 0;
+      const queueId = 454;
+
+      // for any other queueId, we need to pack the values
+      const messageQueue2 = {
+        catalystIds,
+        catalystQuantities: [1, 1, 1, 1],
+        gemIds,
+        gemQuantities: [2, 2, 2, 2, 2],
+        nonce: getPackedNonce(nonce, queueId),
+      };
+      signature = signPurchaseMessage(privateKey, messageQueue2, buyer.address);
+      await expect(
+        buyer.PolygonStarterPack.purchaseWithSAND(
+          buyer.address,
+          messageQueue2,
+          signature
+        )
+      ).to.be.ok;
+
+      // Now we can simply increment the nonce in the new queue (with packing)
+      nonce = 1;
+      const updatedNonceQueue2 = getPackedNonce(nonce, queueId); // 0x000000000000000000000000000001c600000000000000000000000000000001
+      const updatedMessageQueue2 = {
+        catalystIds,
+        catalystQuantities: [1, 1, 1, 1],
+        gemIds,
+        gemQuantities: [2, 2, 2, 2, 2],
+        nonce: updatedNonceQueue2,
+      };
+      signature = signPurchaseMessage(
+        privateKey,
+        updatedMessageQueue2,
+        buyer.address
+      );
+      await expect(
+        buyer.PolygonStarterPack.purchaseWithSAND(
+          buyer.address,
+          updatedMessageQueue2,
+          signature
+        )
+      ).to.be.ok;
+    });
+    it('order of cat IDs should not matter', async function () {
+      const {
+        PolygonStarterPackAsAdmin,
+        other,
+      } = await setupPolygonStarterPack();
+      await PolygonStarterPackAsAdmin.setSANDEnabled(true);
+      const message = {
+        catalystIds: [3, 4, 2, 1],
+        catalystQuantities: [1, 1, 1, 1],
+        gemIds,
+        gemQuantities: [2, 2, 2, 2, 2],
+        nonce: 0,
+      };
+      let signature = signPurchaseMessage(privateKey, message, other.address);
+      await expect(
+        other.PolygonStarterPack.purchaseWithSAND(
+          other.address,
+          message,
+          signature
+        )
+      ).to.be.ok;
+      message.catalystIds = [4, 3, 2, 1];
+      message.nonce++;
+      signature = signPurchaseMessage(privateKey, message, other.address);
+      await expect(
+        other.PolygonStarterPack.purchaseWithSAND(
+          other.address,
+          message,
+          signature
+        )
+      ).to.be.ok;
+    });
+    it('order of gem IDs should not matter', async function () {
+      const {
+        PolygonStarterPackAsAdmin,
+        other,
+      } = await setupPolygonStarterPack();
+      await PolygonStarterPackAsAdmin.setSANDEnabled(true);
+      const message = {
+        catalystIds,
+        catalystQuantities: [1, 1, 1, 1],
+        gemIds: [3, 4, 5, 2, 1],
+        gemQuantities: [2, 2, 2, 2, 2],
+        nonce: 0,
+      };
+      let signature = signPurchaseMessage(privateKey, message, other.address);
+      await expect(
+        other.PolygonStarterPack.purchaseWithSAND(
+          other.address,
+          message,
+          signature
+        )
+      ).to.be.ok;
+      message.gemIds = [5, 4, 3, 2, 1];
+      message.nonce++;
+      signature = signPurchaseMessage(privateKey, message, other.address);
+      await expect(
+        other.PolygonStarterPack.purchaseWithSAND(
+          other.address,
+          message,
+          signature
+        )
+      ).to.be.ok;
+    });
+    it('can get nonce for a buyer', async function () {
+      const {PolygonStarterPack, buyer} = await setupPolygonStarterPack();
+      // default queueId (0)
+      let nonce = await PolygonStarterPack.getNonceByBuyer(buyer.address, 0);
+      expect(nonce).to.be.equal(0);
+      // queueId (7)
+      nonce = await PolygonStarterPack.getNonceByBuyer(buyer.address, 7);
+      expect(nonce).to.be.equal(0);
+    });
+    it('cannot reuse nonce', async function () {
+      const {
+        PolygonStarterPackAsAdmin,
+        other,
+      } = await setupPolygonStarterPack();
+      await PolygonStarterPackAsAdmin.setSANDEnabled(true);
+      const Message = {
+        catalystIds,
+        catalystQuantities: [1, 1, 1, 1],
+        gemIds,
+        gemQuantities: [2, 2, 2, 2, 2],
+        nonce: 0,
+      };
+      const signature = signPurchaseMessage(privateKey, Message, other.address);
+      await other.PolygonStarterPack.purchaseWithSAND(
+        other.address,
+        Message,
+        signature
+      );
+      await expect(
+        other.PolygonStarterPack.purchaseWithSAND(
+          other.address,
+          Message,
+          signature
+        )
+      ).to.be.revertedWith('INVALID_NONCE');
+    });
   });
   describe('getPrices', function () {
     it('cats and gems prices are initially 0 (with 0 switchTime)', async function () {
       const {PolygonStarterPack} = await setupPolygonStarterPack();
       const prices = await PolygonStarterPack.getPrices(catalystIds, gemIds);
-      // TODO: args
-      // catalystPricesBeforeSwitch,
-      // catalystPricesAfterSwitch,
-      // gemPricesBeforeSwitch,
-      // gemPricesAfterSwitch,
-      // switchTime
-      // TODO: view prices after calling setPrices
-      // [
-      //   [
-      //     BigNumber { _hex: '0x00', _isBigNumber: true },
-      //     BigNumber { _hex: '0x00', _isBigNumber: true },
-      //     BigNumber { _hex: '0x00', _isBigNumber: true },
-      //     BigNumber { _hex: '0x00', _isBigNumber: true }
-      //   ],
-      //   [
-      //     BigNumber { _hex: '0x00', _isBigNumber: true },
-      //     BigNumber { _hex: '0x00', _isBigNumber: true },
-      //     BigNumber { _hex: '0x00', _isBigNumber: true },
-      //     BigNumber { _hex: '0x00', _isBigNumber: true }
-      //   ],
-      //   [
-      //     BigNumber { _hex: '0x00', _isBigNumber: true },
-      //     BigNumber { _hex: '0x00', _isBigNumber: true },
-      //     BigNumber { _hex: '0x00', _isBigNumber: true },
-      //     BigNumber { _hex: '0x00', _isBigNumber: true },
-      //     BigNumber { _hex: '0x00', _isBigNumber: true }
-      //   ],
-      //   [
-      //     BigNumber { _hex: '0x00', _isBigNumber: true },
-      //     BigNumber { _hex: '0x00', _isBigNumber: true },
-      //     BigNumber { _hex: '0x00', _isBigNumber: true },
-      //     BigNumber { _hex: '0x00', _isBigNumber: true },
-      //     BigNumber { _hex: '0x00', _isBigNumber: true }
-      //   ],
-      //   BigNumber { _hex: '0x00', _isBigNumber: true }
-      // ]
+
+      const catalystPricesBeforeSwitch = prices[0];
+      const catalystPricesAfterSwitch = prices[1];
+      const gemPricesBeforeSwitch = prices[2];
+      const gemPricesAfterSwitch = prices[3];
+      const switchTime = prices[4];
+
+      expect(catalystPricesBeforeSwitch[0]).to.be.equal(0);
+      expect(catalystPricesAfterSwitch[0]).to.be.equal(0);
+      expect(gemPricesBeforeSwitch[0]).to.be.equal(0);
+      expect(gemPricesAfterSwitch[0]).to.be.equal(0);
+      expect(switchTime).to.be.equal(0);
     });
     it('cats and gems prices can be viewed after an update has been made', async function () {
-      const {PolygonStarterPack} = await setupPolygonStarterPack();
-      const prices = await PolygonStarterPack.getPrices(catalystIds, gemIds);
-      // TODO: args
-      // catalystPricesBeforeSwitch,
-      // catalystPricesAfterSwitch,
-      // gemPricesBeforeSwitch,
-      // gemPricesAfterSwitch,
-      // switchTime
-      // TODO: view prices after calling setPrices
+      const {
+        PolygonStarterPack,
+        PolygonStarterPackAsAdmin,
+      } = await setupPolygonStarterPack();
+      let receipt = await waitFor(
+        PolygonStarterPackAsAdmin.setPrices(
+          catalystIds,
+          catPrices,
+          gemIds,
+          gemPrices
+        )
+      );
+      let block = await ethers.provider.getBlock(receipt.blockHash);
+
+      // fast forward 1 hour so the new prices are in effect
+      await increaseTime(3600);
+      let prices = await PolygonStarterPack.getPrices(catalystIds, gemIds);
+      let catalystPricesBeforeSwitch = prices[0];
+      let catalystPricesAfterSwitch = prices[1];
+      let gemPricesBeforeSwitch = prices[2];
+      let gemPricesAfterSwitch = prices[3];
+      let switchTime = prices[4];
+
+      expect(catalystPricesBeforeSwitch[0]).to.be.equal(0);
+      expect(catalystPricesAfterSwitch[0]).to.be.equal(catPrices[0]);
+      expect(gemPricesBeforeSwitch[0]).to.be.equal(0);
+      expect(gemPricesAfterSwitch[0]).to.be.equal(gemPrices[0]);
+      expect(switchTime).to.be.equal(block.timestamp + 3600); // switchTime, which is 1 hour after a price change
+
+      receipt = await waitFor(
+        PolygonStarterPackAsAdmin.setPrices(
+          catalystIds,
+          catPrices2,
+          gemIds,
+          gemPrices2
+        )
+      );
+      block = await ethers.provider.getBlock(receipt.blockHash);
+      // fast forward 1 hour so the new prices are in effect
+      await increaseTime(3600);
+
+      prices = await PolygonStarterPack.getPrices(catalystIds, gemIds);
+      catalystPricesBeforeSwitch = prices[0];
+      catalystPricesAfterSwitch = prices[1];
+      gemPricesBeforeSwitch = prices[2];
+      gemPricesAfterSwitch = prices[3];
+      switchTime = prices[4];
+
+      expect(catalystPricesBeforeSwitch[0]).to.be.equal(catPrices[0]);
+      expect(catalystPricesBeforeSwitch[1]).to.be.equal(catPrices[1]);
+      expect(catalystPricesBeforeSwitch[2]).to.be.equal(catPrices[2]);
+      expect(catalystPricesBeforeSwitch[3]).to.be.equal(catPrices[3]);
+
+      expect(catalystPricesAfterSwitch[0]).to.be.equal(catPrices2[0]);
+      expect(catalystPricesAfterSwitch[1]).to.be.equal(catPrices2[1]);
+      expect(catalystPricesAfterSwitch[2]).to.be.equal(catPrices2[2]);
+      expect(catalystPricesAfterSwitch[3]).to.be.equal(catPrices2[3]);
+
+      expect(gemPricesBeforeSwitch[0]).to.be.equal(gemPrices[0]);
+      expect(gemPricesBeforeSwitch[1]).to.be.equal(gemPrices[1]);
+      expect(gemPricesBeforeSwitch[2]).to.be.equal(gemPrices[2]);
+      expect(gemPricesBeforeSwitch[3]).to.be.equal(gemPrices[3]);
+      expect(gemPricesBeforeSwitch[4]).to.be.equal(gemPrices[4]);
+
+      expect(gemPricesAfterSwitch[0]).to.be.equal(gemPrices2[0]);
+      expect(gemPricesAfterSwitch[1]).to.be.equal(gemPrices2[1]);
+      expect(gemPricesAfterSwitch[2]).to.be.equal(gemPrices2[2]);
+      expect(gemPricesAfterSwitch[3]).to.be.equal(gemPrices2[3]);
+      expect(gemPricesAfterSwitch[4]).to.be.equal(gemPrices2[4]);
+
+      expect(switchTime).to.be.equal(block.timestamp + 3600); // switchTime, which is 1 hour after a price change
     });
   });
   describe('isSANDEnabled', function () {
@@ -1217,6 +1509,73 @@ describe.only('PolygonStarterPack.sol', function () {
     });
   });
   describe('metatransactions', function () {
-    // TODO:
+    it.skip('can purchase with metatx', async function () {
+      const {
+        buyer,
+        trustedForwarder,
+        powerGem,
+        defenseGem,
+        speedGem,
+        magicGem,
+        luckGem,
+        commonCatalyst,
+        rareCatalyst,
+        epicCatalyst,
+        legendaryCatalyst,
+        PolygonStarterPack,
+      } = await setupPolygonStarterPack();
+      const Message = {...TestMessage};
+      const signature = signPurchaseMessage(privateKey, Message, buyer.address);
+
+      const {
+        to, // 0x20Fbd46DeEd5EEDEB6e5c87eeB31924e9CA312ad
+        data,
+      } = await PolygonStarterPack.populateTransaction.purchaseWithSAND(
+        buyer.address,
+        Message,
+        signature
+      );
+
+      const forwarder = trustedForwarder;
+      const signer = buyer.address;
+
+      const receipt = await sendMetaTx(to, forwarder, data, signer, '1000000');
+
+      const txEvent = await expectEventWithArgsFromReceipt(
+        trustedForwarder,
+        receipt,
+        'TXResult'
+      );
+
+      expect(txEvent.args.success).to.be.true;
+
+      expect(await powerGem.balanceOf(buyer.address)).to.be.eq(
+        BigNumber.from(Message.gemQuantities[0])
+      );
+      expect(await defenseGem.balanceOf(buyer.address)).to.be.eq(
+        BigNumber.from(Message.gemQuantities[1])
+      );
+      expect(await speedGem.balanceOf(buyer.address)).to.be.eq(
+        BigNumber.from(Message.gemQuantities[2])
+      );
+      expect(await magicGem.balanceOf(buyer.address)).to.be.eq(
+        BigNumber.from(Message.gemQuantities[3])
+      );
+      expect(await luckGem.balanceOf(buyer.address)).to.be.eq(
+        BigNumber.from(Message.gemQuantities[4])
+      );
+      expect(await commonCatalyst.balanceOf(buyer.address)).to.be.eq(
+        BigNumber.from(Message.catalystQuantities[0])
+      );
+      expect(await rareCatalyst.balanceOf(buyer.address)).to.be.eq(
+        BigNumber.from(Message.catalystQuantities[1])
+      );
+      expect(await epicCatalyst.balanceOf(buyer.address)).to.be.eq(
+        BigNumber.from(Message.catalystQuantities[2])
+      );
+      expect(await legendaryCatalyst.balanceOf(buyer.address)).to.be.eq(
+        BigNumber.from(Message.catalystQuantities[3])
+      );
+    });
   });
 });

@@ -35,7 +35,7 @@ contract StarterPackV2 is PurchaseValidator, ERC2771Handler {
 
     event ReceivingWallet(address newReceivingWallet);
 
-    event Purchase(address indexed buyer, Message message, uint256 price, address token, uint256 amountPaid);
+    event Purchase(address indexed buyer, Message message, uint256 amountPaid, address token);
 
     event SetPrices(
         uint256[] catalystIds,
@@ -148,9 +148,8 @@ contract StarterPackV2 is PurchaseValidator, ERC2771Handler {
     ) external {
         require(buyer == _msgSender(), "INVALID_SENDER");
         require(_sandEnabled, "SAND_IS_NOT_ENABLED");
-        // TODO: check against AssetSignedAuction audit feedback on signatures
         require(
-            isPurchaseValid(
+            _isPurchaseValid(
                 buyer,
                 message.catalystIds,
                 message.catalystQuantities,
@@ -172,7 +171,7 @@ contract StarterPackV2 is PurchaseValidator, ERC2771Handler {
         _transferSANDPayment(buyer, _wallet, amountInSAND);
         _transferCatalysts(message.catalystIds, message.catalystQuantities, buyer);
         _transferGems(message.gemIds, message.gemQuantities, buyer);
-        emit Purchase(buyer, message, amountInSAND, _sand, amountInSAND);
+        emit Purchase(buyer, message, amountInSAND, _sand);
     }
 
     /// @notice Get current StarterPack prices for catalysts and gems by id
