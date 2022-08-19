@@ -5,9 +5,9 @@ import {IPolygonLand} from "../../../common/interfaces/IPolygonLand.sol";
 import {IEstateExperienceRegistry} from "../../../common/interfaces/IEstateExperienceRegistry.sol";
 import {MapLib} from "../../../common/Libraries/MapLib.sol";
 import {TileWithCoordLib} from "../../../common/Libraries/TileWithCoordLib.sol";
-import {EstateBaseToken} from "../../../estate/EstateBaseToken.sol";
+import {EstateBaseTokenWithERC4907} from "../../../estate/EstateBaseTokenWithERC4907.sol";
 
-contract PolygonEstateTokenV1 is EstateBaseToken {
+contract PolygonEstateTokenV1 is EstateBaseTokenWithERC4907 {
     using MapLib for MapLib.Map;
 
     struct PolygonEstateTokenStorage {

@@ -4,9 +4,9 @@ pragma solidity 0.8.2;
 import {ILandToken} from "../../../common/interfaces/ILandToken.sol";
 import {MapLib} from "../../../common/Libraries/MapLib.sol";
 import {TileWithCoordLib} from "../../../common/Libraries/TileWithCoordLib.sol";
-import {EstateBaseToken} from "../../../estate/EstateBaseToken.sol";
+import {EstateBaseTokenWithERC4907} from "../../../estate/EstateBaseTokenWithERC4907.sol";
 
-contract EstateTokenV1 is EstateBaseToken {
+contract EstateTokenV1 is EstateBaseTokenWithERC4907 {
     using MapLib for MapLib.Map;
 
     /// @notice update an estate adding and removing lands in one step
