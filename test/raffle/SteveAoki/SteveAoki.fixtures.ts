@@ -15,6 +15,7 @@ export const setupRaffle = withSnapshot(['RaffleSteveAoki'], async function (
   hre
 ) {
   const raffleSteveAokiContract = await ethers.getContract('RaffleSteveAoki');
+
   const sandContract = await ethers.getContract('Sand');
   return {
     raffleSteveAokiContract,

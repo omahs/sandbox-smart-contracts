@@ -12,7 +12,7 @@ import {
 } from './SteveAoki.fixtures';
 
 // eslint-disable-next-line mocha/no-skipped-tests
-describe.only('RaffleSteveAoki', function () {
+describe('RaffleSteveAoki', function () {
   it('should be able to mint with valid signature', async function () {
     const {
       raffleSteveAokiContract,
@@ -23,6 +23,7 @@ describe.only('RaffleSteveAoki', function () {
       mint,
     } = await setupRaffle();
     const {deployer} = await getNamedAccounts();
+
     await transferSand(deployer, '1000');
     await setupWave(raffleSteveAokiContract, 0, 20, 5, '10', zeroAddress, 0);
     await mint(
