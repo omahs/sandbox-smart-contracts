@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import {Address} from "@openzeppelin/contracts-0.8/utils/Address.sol";
+
 import "@openzeppelin/contracts-0.8/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts-0.8/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-0.8/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts-0.8/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-0.8/utils/cryptography/ECDSA.sol";
-import {Address} from "@openzeppelin/contracts-0.8/utils/Address.sol";
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
@@ -15,6 +16,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721Enumer
 /* solhint-disable max-states-count */
 contract GenericRaffle is ERC721EnumerableUpgradeable, OwnableUpgradeable, ReentrancyGuardUpgradeable {
     using Address for address;
+
     uint256 public maxSupply;
 
     event TogglePaused(bool _pause);
@@ -75,11 +77,7 @@ contract GenericRaffle is ERC721EnumerableUpgradeable, OwnableUpgradeable, Reent
     ) external onlyOwner {
         require(_waveMaxTokens <= maxSupply, "_waveMaxTokens should not exceed maxSupply");
         require(_waveType < 3 && _waveMaxTokens > 0 && _waveMaxTokensToBuy > 0, "Invalid configuration");
-        // require(_contractAddress.isContract(), "Contract address is not a contract");
-
-        if (_waveType != 0) {
-            require(_contractAddress != address(0x0), "Invalid contract address");
-        }
+        require(_contractAddress != address(0x0), "Invalid contract address");
         require(_waveMaxTokensToBuy <= _waveMaxTokens, "Invalid supply configuration");
 
         waveType = _waveType;
