@@ -27,6 +27,7 @@ const AUCTION_TYPEHASH = ethers.utils.solidityKeccak256(
 const setupAssetSignedAuction = withSnapshot(
   [
     'Asset',
+    'Land',
     'AuthValidator',
     'AssetSignedAuctionWithAuth',
     'Sand',
@@ -244,6 +245,7 @@ describe('assetSignedAuctionWithAuth', function () {
           amounts,
           signature,
           backendSignature,
+          isLand: false,
         },
         {value: '5000000000000000000'}
       )
@@ -353,6 +355,7 @@ describe('assetSignedAuctionWithAuth', function () {
           amounts: wrongAmount,
           signature,
           backendSignature,
+          isLand: false,
         },
         {value: '5000000000000000000'}
       )
@@ -460,6 +463,7 @@ describe('assetSignedAuctionWithAuth', function () {
           amounts,
           signature,
           backendSignature,
+          isLand: false,
         },
         {value: '5000000000000000000'}
       )
@@ -569,6 +573,7 @@ describe('assetSignedAuctionWithAuth', function () {
           amounts,
           signature,
           backendSignature,
+          isLand: false,
         },
         {value: '5000000000000000000'}
       )
@@ -588,6 +593,131 @@ describe('assetSignedAuctionWithAuth', function () {
       new BN(await Asset.balanceOfBatch([buyer], [tokenId])).toString(),
       '1'
     );
+  });
+
+  it('should be able to claim seller offer in ETH - NFT', async function () {
+    const {
+      assetSignedAuctionFixture,
+      assetFixture,
+    } = await setupAssetSignedAuction();
+    const {Land, users, mintLand, approve} = assetFixture;
+    const {assetSignedAuctionAuthContract} = assetSignedAuctionFixture;
+
+    const tokenId = await mintLand(users[0].address);
+
+    const seller = users[0].address;
+    const buyer = users[1].address;
+
+    const offerId = new BN(crypto.randomBytes(32), 16).toString(10);
+    const startedAt = (await getTime()) - 500;
+
+    const AssetSignedAuctionAuthContractAsUser = assetSignedAuctionAuthContract.connect(
+      ethers.provider.getSigner(buyer)
+    );
+
+    const auctionData = [
+      offerId,
+      startingPrice.toString(),
+      endingPrice.toString(),
+      startedAt,
+      duration,
+      packs,
+    ];
+
+    // address from,address token,uint256 offerId,uint256 startingPrice,uint256 endingPrice,uint256 startedAt,uint256 duration,uint256 packs,bytes ids,bytes amounts
+    const signature = await ethers.provider.send('eth_signTypedData_v4', [
+      seller,
+      {
+        types: {
+          EIP712Domain: [
+            {
+              name: 'name',
+              type: 'string',
+            },
+            {
+              name: 'version',
+              type: 'string',
+            },
+            {
+              name: 'chainId',
+              type: 'uint256',
+            },
+            {
+              name: 'verifyingContract',
+              type: 'address',
+            },
+          ],
+          Auction: [
+            {name: 'from', type: 'address'},
+            {name: 'token', type: 'address'},
+            {name: 'auctionData', type: 'bytes'},
+            {name: 'ids', type: 'bytes'},
+            {name: 'amounts', type: 'bytes'},
+          ],
+        },
+        primaryType: 'Auction',
+        domain: {
+          name: 'The Sandbox',
+          version: '1',
+          chainId: 31337,
+          verifyingContract: AssetSignedAuctionAuthContractAsUser.address,
+        },
+        message: {
+          from: seller,
+          token: zeroAddress,
+          auctionData: ethers.utils.solidityPack(['uint[]'], [auctionData]),
+          ids: ethers.utils.solidityPack(['uint[]'], [[tokenId]]),
+          amounts: ethers.utils.solidityPack(['uint[]'], [amounts]),
+        },
+      },
+    ]);
+
+    const backendSignature = await signAuthMessageAs(
+      backendAuthWallet,
+      AUCTION_TYPEHASH,
+      buyer,
+      seller,
+      zeroAddress,
+      auctionData,
+      [tokenId],
+      [amounts],
+      [buyAmount, '5000000000000000000']
+    );
+
+    const prevSellerEtherBalance = await ethers.provider.getBalance(seller);
+
+    await approve(
+      AssetSignedAuctionAuthContractAsUser.address,
+      users[0].address,
+      tokenId
+    );
+
+    await waitFor(
+      AssetSignedAuctionAuthContractAsUser.claimSellerOffer(
+        {
+          buyer: buyer,
+          seller: seller,
+          token: zeroAddress,
+          purchase: [buyAmount, '5000000000000000000'],
+          auctionData,
+          ids: [tokenId.toString()],
+          amounts,
+          signature,
+          backendSignature,
+          isLand: true,
+        },
+        {value: '5000000000000000000'}
+      )
+    );
+
+    assert.equal(
+      new BN((await ethers.provider.getBalance(seller)).toString()).cmp(
+        new BN(prevSellerEtherBalance.toString())
+      ),
+      1
+    );
+    assert.equal((await Land.balanceOf(seller)).toString(), '0');
+    assert.equal((await Land.balanceOf(buyer)).toString(), '1');
   });
 
   it('should NOT be able to claim offer if signature mismatches', async function () {
@@ -690,6 +820,7 @@ describe('assetSignedAuctionWithAuth', function () {
           amounts,
           signature,
           backendSignature,
+          isLand: false,
         },
         {value: '5000000000000000000'}
       )
@@ -798,6 +929,7 @@ describe('assetSignedAuctionWithAuth', function () {
           amounts,
           signature,
           backendSignature,
+          isLand: false,
         },
         {value: '5000000000000000000'}
       )
@@ -914,6 +1046,7 @@ describe('assetSignedAuctionWithAuth', function () {
         amounts,
         signature,
         backendSignature,
+        isLand: false,
       })
     ).to.be.ok;
 
@@ -1036,6 +1169,7 @@ describe('assetSignedAuctionWithAuth', function () {
           amounts,
           signature,
           backendSignature,
+          isLand: false,
         },
         {value: '5000000000000000000'}
       )
@@ -1153,6 +1287,7 @@ describe('assetSignedAuctionWithAuth', function () {
         amounts,
         signature,
         backendSignature,
+        isLand: false,
       })
     ).to.be.revertedWith('not enough fund');
   });
@@ -1257,6 +1392,7 @@ describe('assetSignedAuctionWithAuth', function () {
           amounts,
           signature,
           backendSignature,
+          isLand: false,
         },
         {value: '5000000000000000000'}
       )
@@ -1363,6 +1499,7 @@ describe('assetSignedAuctionWithAuth', function () {
           amounts,
           signature,
           backendSignature,
+          isLand: false,
         },
         {value: '5000000000000000000'}
       )

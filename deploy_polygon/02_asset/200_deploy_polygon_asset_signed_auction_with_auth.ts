@@ -11,6 +11,7 @@ const func: DeployFunction = async function (hre) {
     assetAuctionFeeCollector,
   } = await getNamedAccounts();
   const PolygonAssetERC1155 = await deployments.get('PolygonAssetERC1155');
+  const PolygonLand = await deployments.get('PolygonLand');
   const TRUSTED_FORWARDER_V2 = await deployments.get('TRUSTED_FORWARDER_V2');
   const authValidatorContract = await deployments.get('PolygonAuthValidator');
 
@@ -18,6 +19,7 @@ const func: DeployFunction = async function (hre) {
     from: deployer,
     args: [
       PolygonAssetERC1155.address,
+      PolygonLand.address,
       assetAuctionAdmin,
       TRUSTED_FORWARDER_V2.address,
       assetAuctionFeeCollector,

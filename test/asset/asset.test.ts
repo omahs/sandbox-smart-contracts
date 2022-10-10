@@ -7,6 +7,7 @@ import {ethers} from 'hardhat';
 const setupAsset = withSnapshot(
   [
     'Asset',
+    'Land',
     'PolygonAssetERC1155',
     'AssetERC1155Tunnel',
     'PolygonAssetERC1155Tunnel',

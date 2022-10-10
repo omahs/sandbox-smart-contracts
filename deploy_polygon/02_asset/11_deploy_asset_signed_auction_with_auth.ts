@@ -15,12 +15,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const authValidatorContract = await deployments.get('PolygonAuthValidator');
   const assetContract = await deployments.get('PolygonAssetERC1155');
+  const PolygonLand = await deployments.get('PolygonLand');
 
   await deploy('PolygonAssetSignedAuctionWithAuth', {
     from: deployer,
     contract: 'AssetSignedAuctionWithAuth',
     args: [
       assetContract.address,
+      PolygonLand.address,
       assetAdmin,
       others[0],
       assetAuctionFeeCollector,
@@ -40,6 +42,7 @@ func.tags = [
 ];
 func.dependencies = [
   'PolygonAssetERC1155_deploy',
+  'PolygonLand_deploy',
   'PolygonAuthValidator_deploy',
 ];
 func.skip = skipUnlessTest;

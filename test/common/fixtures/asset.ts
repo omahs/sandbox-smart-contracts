@@ -22,10 +22,19 @@ export const ipfsHashString =
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export const assetFixtures = async function () {
+  const {landAdmin} = await getNamedAccounts();
   const unnamedAccounts = await getUnnamedAccounts();
   const otherAccounts = [...unnamedAccounts];
   const minter = otherAccounts[0];
   otherAccounts.splice(0, 1);
+
+  const Land = await ethers.getContract('Land');
+  const landAsAdmin = Land.connect(ethers.provider.getSigner(landAdmin));
+
+  await Land.connect(ethers.provider.getSigner(landAdmin)).setMinter(
+    landAdmin,
+    true
+  );
 
   const {assetBouncerAdmin} = await getNamedAccounts();
 
@@ -110,13 +119,36 @@ export const assetFixtures = async function () {
     return tokenId;
   }
 
+  let x = 0;
+
+  async function mintLand(to: string) {
+    const bytes = '0x3333';
+    const GRID_SIZE = 408;
+    x = ++x;
+    const y = 0;
+    const size = 1;
+    const tokenId = x + y * GRID_SIZE;
+
+    await landAsAdmin.mintQuad(to, size, x, y, bytes);
+
+    return tokenId;
+  }
+
+  async function approve(sender: string, operator: string, id: number) {
+    // await landAsAdmin.approve(op, id);
+    await Land.connect(ethers.provider.getSigner(operator)).approve(sender, id);
+  }
+
   const users = await setupUsers(otherAccounts, {Asset});
 
   return {
     Asset,
+    Land,
     users,
     minter,
     mintAsset: mintAssetERC1155,
+    mintLand,
+    approve,
     assetTunnel,
     trustedForwarder,
   };

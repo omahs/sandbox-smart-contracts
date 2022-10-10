@@ -15,6 +15,7 @@ import {ERC1654} from "../common/interfaces/ERC1654.sol";
 import {ERC1654Constants} from "../common/interfaces/ERC1654Constants.sol";
 import {IAuthValidator} from "../common/interfaces/IAuthValidator.sol";
 import {IERC1155} from "../common/interfaces/IERC1155.sol";
+import {IERC721} from "../common/interfaces/IERC721.sol";
 
 contract AssetSignedAuctionWithAuth is
     ReentrancyGuard,
@@ -33,6 +34,7 @@ contract AssetSignedAuctionWithAuth is
         uint256[] amounts;
         bytes signature;
         bytes backendSignature;
+        bool isLand;
     }
 
     enum SignatureType {DIRECT, EIP1654, EIP1271}
@@ -71,6 +73,7 @@ contract AssetSignedAuctionWithAuth is
 
     IAuthValidator public _authValidator;
     IERC1155 public _asset;
+    IERC721 public _land;
     uint256 public _fee10000th = 0;
     uint256 public _feeLimit = 500;
     uint256 public _maxfeeLimit = 500; // 5%
@@ -80,6 +83,7 @@ contract AssetSignedAuctionWithAuth is
 
     constructor(
         IERC1155 asset,
+        IERC721 land,
         address admin,
         address initialMetaTx,
         address payable feeCollector,
@@ -88,6 +92,7 @@ contract AssetSignedAuctionWithAuth is
     ) TheSandbox712() {
         require(fee10000th <= _feeLimit, "Fee above the limit");
         _asset = asset;
+        _land = land;
         _feeCollector = feeCollector;
         _fee10000th = fee10000th;
         emit FeeSetup(feeCollector, fee10000th);
@@ -168,7 +173,8 @@ contract AssetSignedAuctionWithAuth is
             input.seller,
             input.auctionData,
             input.ids,
-            input.amounts
+            input.amounts,
+            input.isLand
         );
     }
 
@@ -215,7 +221,8 @@ contract AssetSignedAuctionWithAuth is
             input.seller,
             input.auctionData,
             input.ids,
-            input.amounts
+            input.amounts,
+            input.isLand
         );
     }
 
@@ -262,7 +269,8 @@ contract AssetSignedAuctionWithAuth is
             input.seller,
             input.auctionData,
             input.ids,
-            input.amounts
+            input.amounts,
+            input.isLand
         );
     }
 
@@ -281,7 +289,8 @@ contract AssetSignedAuctionWithAuth is
         address payable seller,
         uint256[] memory auctionData,
         uint256[] memory ids,
-        uint256[] memory amounts
+        uint256[] memory amounts,
+        bool isLand
     ) internal nonReentrant {
         uint256 offer =
             PriceUtil.calculateCurrentPrice(
@@ -322,7 +331,13 @@ contract AssetSignedAuctionWithAuth is
         for (uint256 i = 0; i < packAmounts.length; i++) {
             packAmounts[i] = amounts[i] * purchase[0];
         }
-        _asset.safeBatchTransferFrom(seller, buyer, ids, packAmounts, "");
+
+        if (isLand) {
+            _land.safeTransferFrom(seller, buyer, ids[0], "");
+        } else {
+            _asset.safeBatchTransferFrom(seller, buyer, ids, packAmounts, "");
+        }
+
         emit OfferClaimed(seller, buyer, auctionData[AuctionData_OfferId], purchase[0], offer, fee);
     }
 

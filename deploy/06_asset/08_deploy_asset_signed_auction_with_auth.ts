@@ -14,6 +14,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   } = await getNamedAccounts();
 
   const assetContract = await deployments.get('Asset');
+  const Land = await deployments.get('Land');
   const authValidatorContract = await deployments.get('AuthValidator');
   const TRUSTED_FORWARDER = await deployments.get('TRUSTED_FORWARDER');
 
@@ -22,6 +23,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     contract: 'AssetSignedAuctionWithAuth',
     args: [
       assetContract.address,
+      Land.address,
       assetAuctionAdmin,
       TRUSTED_FORWARDER.address,
       assetAuctionFeeCollector,
